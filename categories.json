@@ -618,6 +618,14 @@
     ],
     "enabled": true
   },
+  "skaerm": {
+    "label": "Skaerm",
+    "color": "#c5e1a5",
+    "match": [
+      "/skaerm/"
+    ],
+    "enabled": true
+  },
   "other": {
     "label": "Other",
     "color": "#eeeeee",
