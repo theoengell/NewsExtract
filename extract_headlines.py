@@ -2542,6 +2542,29 @@ def build_combined_html(site_blocks, categories, sites_config, site_domains):
     if (el) el.textContent = "(" + visible + ")";
   }}
 
+  function refreshCollapsedNewCounts() {{
+    document.querySelectorAll("section.site[data-site]").forEach(function (sec) {{
+      const countEl = sec.querySelector(".collapsed-new-count");
+      let n = 0;
+      sec.querySelectorAll(".site-body li.headline[data-new='1']").forEach(function (li) {{
+        if (isFilterVisible(li)) n += 1;
+      }});
+      if (n <= 0) {{
+        if (countEl) countEl.remove();
+      }} else {{
+        const label = n === 1 ? "1 new article" : n + " new articles";
+        if (countEl) countEl.textContent = label;
+        else {{
+          const span = document.createElement("span");
+          span.className = "collapsed-new-count";
+          span.textContent = label;
+          const title = sec.querySelector("h2.site-title");
+          if (title) title.appendChild(span);
+        }}
+      }}
+    }});
+  }}
+
   function applyAllNew(show) {{
     const cb = document.getElementById("toggle-all-new");
     if (cb) cb.checked = !!show;
@@ -2698,6 +2721,7 @@ def build_combined_html(site_blocks, categories, sites_config, site_domains):
       cb.checked = state[cb.getAttribute("data-category")] !== false;
     }});
     applySeenLimit(currentSeenLimit());
+    refreshCollapsedNewCounts();
     refreshAllNewCount();
   }}
 
@@ -2707,6 +2731,7 @@ def build_combined_html(site_blocks, categories, sites_config, site_domains):
       li.classList.toggle("hidden-external", !show);
     }});
     applySeenLimit(currentSeenLimit());
+    refreshCollapsedNewCounts();
     refreshAllNewCount();
   }}
 
@@ -2875,27 +2900,8 @@ def build_combined_html(site_blocks, categories, sites_config, site_domains):
       const hit = keywords.some(function (k) {{ return hay.indexOf(k) !== -1; }});
       li.classList.toggle("hidden-exclude", hit);
     }});
-    document.querySelectorAll("section.site[data-site]").forEach(function (sec) {{
-      const countEl = sec.querySelector(".collapsed-new-count");
-      let n = 0;
-      sec.querySelectorAll(".site-body li.headline[data-new='1']").forEach(function (li) {{
-        if (!li.classList.contains("hidden-exclude")) n += 1;
-      }});
-      if (n <= 0) {{
-        if (countEl) countEl.remove();
-      }} else {{
-        const label = n === 1 ? "1 new article" : n + " new articles";
-        if (countEl) countEl.textContent = label;
-        else {{
-          const span = document.createElement("span");
-          span.className = "collapsed-new-count";
-          span.textContent = label;
-          const title = sec.querySelector("h2.site-title");
-          if (title) title.appendChild(span);
-        }}
-      }}
-    }});
     applySeenLimit(currentSeenLimit());
+    refreshCollapsedNewCounts();
     refreshAllNewCount();
     return raw;
   }}

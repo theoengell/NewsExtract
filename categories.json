@@ -610,6 +610,14 @@
     ],
     "enabled": true
   },
+  "stage": {
+    "label": "Stage",
+    "color": "#c5e1a5",
+    "match": [
+      "/stage/"
+    ],
+    "enabled": true
+  },
   "other": {
     "label": "Other",
     "color": "#eeeeee",
