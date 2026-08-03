@@ -1,0 +1,14 @@
+# Runtime headline cache (new/seen history)
+headlines_cache.json
+
+# Generated dashboard
+headlines.html
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.venv/
+venv/
+.env

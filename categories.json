@@ -1,0 +1,619 @@
+{
+  "nyheder": {
+    "label": "Nyheder",
+    "color": "#e3f2fd",
+    "match": [
+      "/nyheder/",
+      "/seneste/"
+    ],
+    "enabled": true
+  },
+  "indland": {
+    "label": "Indland",
+    "color": "#80cbc4",
+    "match": [
+      "/indland/",
+      "/danmark/",
+      "/samfund/"
+    ],
+    "enabled": true
+  },
+  "udland": {
+    "label": "Udland",
+    "color": "#ce93d8",
+    "match": [
+      "/udland/",
+      "/internationalt/"
+    ],
+    "enabled": true
+  },
+  "politik": {
+    "label": "Politik",
+    "color": "#90caf9",
+    "match": [
+      "/politik/",
+      "/danskpolitik/"
+    ],
+    "enabled": true
+  },
+  "krimi": {
+    "label": "Krimi",
+    "color": "#ef9a9a",
+    "match": [
+      "/krimi/"
+    ],
+    "enabled": true
+  },
+  "sport": {
+    "label": "Sport",
+    "color": "#a5d6a7",
+    "match": [
+      "/sport/",
+      "/sporten/",
+      "/fodbold/",
+      "/cykling/",
+      "/anden_sport/",
+      "/superligaen/"
+    ],
+    "enabled": true
+  },
+  "penge": {
+    "label": "Penge",
+    "color": "#fff59d",
+    "match": [
+      "/penge/",
+      "/virksomheder/",
+      "/okonomi/",
+      "/økonomi/"
+    ],
+    "enabled": true
+  },
+  "forbrug": {
+    "label": "Forbrug",
+    "color": "#ffcc80",
+    "match": [
+      "/forbrug/",
+      "/sundhed/",
+      "/vores-liv/"
+    ],
+    "enabled": true
+  },
+  "kultur": {
+    "label": "Kultur",
+    "color": "#b39ddb",
+    "match": [
+      "/kultur/",
+      "/musik/",
+      "/filmogtv/",
+      "/film_og_tv/"
+    ],
+    "enabled": true
+  },
+  "underholdning": {
+    "label": "Underholdning",
+    "color": "#f8bbd0",
+    "match": [
+      "/underholdning/",
+      "/royale/",
+      "/dkkendte/",
+      "/udlandkendte/",
+      "/int-kendte/",
+      "/side9/"
+    ],
+    "enabled": true
+  },
+  "debat": {
+    "label": "Debat",
+    "color": "#bcaaa4",
+    "match": [
+      "/debat/",
+      "/debatindlaeg/",
+      "/ledere/",
+      "/kommentatorer/"
+    ],
+    "enabled": true
+  },
+  "live": {
+    "label": "Live",
+    "color": "#ffab91",
+    "match": [
+      "/live/"
+    ],
+    "enabled": true
+  },
+  "vejret": {
+    "label": "Vejr & trafik",
+    "color": "#b2ebf2",
+    "match": [
+      "/vejret/",
+      "/trafik/"
+    ],
+    "enabled": true
+  },
+  "oekonomi": {
+    "label": "Oekonomi",
+    "color": "#c5e1a5",
+    "match": [
+      "/oekonomi/"
+    ],
+    "enabled": true
+  },
+  "dine-penge": {
+    "label": "Dine Penge",
+    "color": "#ffe082",
+    "match": [
+      "/dine-penge/"
+    ],
+    "enabled": true
+  },
+  "dagens-overblik": {
+    "label": "Dagens Overblik",
+    "color": "#b3e5fc",
+    "match": [
+      "/dagens-overblik/"
+    ],
+    "enabled": true
+  },
+  "eksistens": {
+    "label": "Eksistens",
+    "color": "#d1c4e9",
+    "match": [
+      "/eksistens/"
+    ],
+    "enabled": true
+  },
+  "spil": {
+    "label": "Spil",
+    "color": "#ffcdd2",
+    "match": [
+      "/spil/"
+    ],
+    "enabled": true
+  },
+  "danske-kendte": {
+    "label": "Danske Kendte",
+    "color": "#b2dfdb",
+    "match": [
+      "/danske-kendte/"
+    ],
+    "enabled": true
+  },
+  "familie": {
+    "label": "Familie",
+    "color": "#f0f4c3",
+    "match": [
+      "/familie/"
+    ],
+    "enabled": true
+  },
+  "ideer": {
+    "label": "Ideer",
+    "color": "#ffccbc",
+    "match": [
+      "/ideer/"
+    ],
+    "enabled": true
+  },
+  "rejser": {
+    "label": "Rejser",
+    "color": "#d7ccc8",
+    "match": [
+      "/rejser/"
+    ],
+    "enabled": true
+  },
+  "aktier": {
+    "label": "Aktier",
+    "color": "#e1bee7",
+    "match": [
+      "/aktier/"
+    ],
+    "enabled": true
+  },
+  "titles": {
+    "label": "Titles",
+    "color": "#c5e1a5",
+    "match": [
+      "/titles/"
+    ],
+    "enabled": true
+  },
+  "videnskab": {
+    "label": "Videnskab",
+    "color": "#c5e1a5",
+    "match": [
+      "/videnskab/"
+    ],
+    "enabled": true
+  },
+  "kronikker": {
+    "label": "Kronikker",
+    "color": "#c5e1a5",
+    "match": [
+      "/kronikker/"
+    ],
+    "enabled": true
+  },
+  "synspunkter": {
+    "label": "Synspunkter",
+    "color": "#c5e1a5",
+    "match": [
+      "/synspunkter/"
+    ],
+    "enabled": true
+  },
+  "arkitektur": {
+    "label": "Arkitektur",
+    "color": "#c5e1a5",
+    "match": [
+      "/arkitektur/"
+    ],
+    "enabled": true
+  },
+  "oplevelser": {
+    "label": "Oplevelser",
+    "color": "#c5e1a5",
+    "match": [
+      "/oplevelser/"
+    ],
+    "enabled": true
+  },
+  "poesi": {
+    "label": "Poesi",
+    "color": "#c5e1a5",
+    "match": [
+      "/poesi/"
+    ],
+    "enabled": true
+  },
+  "reel": {
+    "label": "Reel",
+    "color": "#c5e1a5",
+    "match": [
+      "/reel/"
+    ],
+    "enabled": true
+  },
+  "det-bedste-fra-dr": {
+    "label": "Det Bedste Fra Dr",
+    "color": "#c5e1a5",
+    "match": [
+      "/det-bedste-fra-dr/"
+    ],
+    "enabled": true
+  },
+  "ibyen": {
+    "label": "Ibyen",
+    "color": "#c5e1a5",
+    "match": [
+      "/ibyen/"
+    ],
+    "enabled": true
+  },
+  "mad": {
+    "label": "Mad",
+    "color": "#c5e1a5",
+    "match": [
+      "/mad/"
+    ],
+    "enabled": true
+  },
+  "ferie": {
+    "label": "Ferie",
+    "color": "#c5e1a5",
+    "match": [
+      "/ferie/"
+    ],
+    "enabled": true
+  },
+  "gastronomi": {
+    "label": "Gastronomi",
+    "color": "#c5e1a5",
+    "match": [
+      "/gastronomi/"
+    ],
+    "enabled": true
+  },
+  "boeger": {
+    "label": "Boeger",
+    "color": "#c5e1a5",
+    "match": [
+      "/boeger/"
+    ],
+    "enabled": true
+  },
+  "spil-og-quiz": {
+    "label": "Spil Og Quiz",
+    "color": "#c5e1a5",
+    "match": [
+      "/spil-og-quiz/"
+    ],
+    "enabled": true
+  },
+  "opinion": {
+    "label": "Opinion",
+    "color": "#c5e1a5",
+    "match": [
+      "/opinion/"
+    ],
+    "enabled": true
+  },
+  "business": {
+    "label": "Business",
+    "color": "#c5e1a5",
+    "match": [
+      "/business/"
+    ],
+    "enabled": true
+  },
+  "viden": {
+    "label": "Viden",
+    "color": "#c5e1a5",
+    "match": [
+      "/viden/"
+    ],
+    "enabled": true
+  },
+  "erhverv": {
+    "label": "Erhverv",
+    "color": "#c5e1a5",
+    "match": [
+      "/erhverv/"
+    ],
+    "enabled": true
+  },
+  "film-tv-og-streaming": {
+    "label": "Film Tv Og Streaming",
+    "color": "#c5e1a5",
+    "match": [
+      "/film-tv-og-streaming/"
+    ],
+    "enabled": true
+  },
+  "world": {
+    "label": "World",
+    "color": "#c5e1a5",
+    "match": [
+      "/world/"
+    ],
+    "enabled": true
+  },
+  "lifeandstyle": {
+    "label": "Lifeandstyle",
+    "color": "#c5e1a5",
+    "match": [
+      "/lifeandstyle/"
+    ],
+    "enabled": true
+  },
+  "commentisfree": {
+    "label": "Commentisfree",
+    "color": "#c5e1a5",
+    "match": [
+      "/commentisfree/"
+    ],
+    "enabled": true
+  },
+  "us-news": {
+    "label": "Us News",
+    "color": "#c5e1a5",
+    "match": [
+      "/us-news/"
+    ],
+    "enabled": true
+  },
+  "football": {
+    "label": "Football",
+    "color": "#c5e1a5",
+    "match": [
+      "/football/"
+    ],
+    "enabled": true
+  },
+  "environment": {
+    "label": "Environment",
+    "color": "#c5e1a5",
+    "match": [
+      "/environment/"
+    ],
+    "enabled": true
+  },
+  "music": {
+    "label": "Music",
+    "color": "#c5e1a5",
+    "match": [
+      "/music/"
+    ],
+    "enabled": true
+  },
+  "food": {
+    "label": "Food",
+    "color": "#c5e1a5",
+    "match": [
+      "/food/"
+    ],
+    "enabled": true
+  },
+  "news": {
+    "label": "News",
+    "color": "#c5e1a5",
+    "match": [
+      "/news/"
+    ],
+    "enabled": true
+  },
+  "film": {
+    "label": "Film",
+    "color": "#c5e1a5",
+    "match": [
+      "/film/"
+    ],
+    "enabled": true
+  },
+  "fashion": {
+    "label": "Fashion",
+    "color": "#c5e1a5",
+    "match": [
+      "/fashion/"
+    ],
+    "enabled": true
+  },
+  "culture": {
+    "label": "Culture",
+    "color": "#c5e1a5",
+    "match": [
+      "/culture/"
+    ],
+    "enabled": true
+  },
+  "books": {
+    "label": "Books",
+    "color": "#c5e1a5",
+    "match": [
+      "/books/"
+    ],
+    "enabled": true
+  },
+  "wellness": {
+    "label": "Wellness",
+    "color": "#c5e1a5",
+    "match": [
+      "/wellness/"
+    ],
+    "enabled": true
+  },
+  "science": {
+    "label": "Science",
+    "color": "#c5e1a5",
+    "match": [
+      "/science/"
+    ],
+    "enabled": true
+  },
+  "australia-news": {
+    "label": "Australia News",
+    "color": "#c5e1a5",
+    "match": [
+      "/australia-news/"
+    ],
+    "enabled": true
+  },
+  "uk-news": {
+    "label": "Uk News",
+    "color": "#c5e1a5",
+    "match": [
+      "/uk-news/"
+    ],
+    "enabled": true
+  },
+  "global-development": {
+    "label": "Global Development",
+    "color": "#c5e1a5",
+    "match": [
+      "/global-development/"
+    ],
+    "enabled": true
+  },
+  "artanddesign": {
+    "label": "Artanddesign",
+    "color": "#c5e1a5",
+    "match": [
+      "/artanddesign/"
+    ],
+    "enabled": true
+  },
+  "interactive": {
+    "label": "Interactive",
+    "color": "#c5e1a5",
+    "match": [
+      "/interactive/"
+    ],
+    "enabled": true
+  },
+  "eblive": {
+    "label": "Eblive",
+    "color": "#c5e1a5",
+    "match": [
+      "/eblive/"
+    ],
+    "enabled": true
+  },
+  "podcast": {
+    "label": "Podcast",
+    "color": "#c5e1a5",
+    "match": [
+      "/podcast/"
+    ],
+    "enabled": true
+  },
+  "society": {
+    "label": "Society",
+    "color": "#c5e1a5",
+    "match": [
+      "/society/"
+    ],
+    "enabled": true
+  },
+  "education": {
+    "label": "Education",
+    "color": "#c5e1a5",
+    "match": [
+      "/education/"
+    ],
+    "enabled": true
+  },
+  "politics": {
+    "label": "Politics",
+    "color": "#c5e1a5",
+    "match": [
+      "/politics/"
+    ],
+    "enabled": true
+  },
+  "money": {
+    "label": "Money",
+    "color": "#c5e1a5",
+    "match": [
+      "/money/"
+    ],
+    "enabled": true
+  },
+  "tv-and-radio": {
+    "label": "Tv And Radio",
+    "color": "#c5e1a5",
+    "match": [
+      "/tv-and-radio/"
+    ],
+    "enabled": true
+  },
+  "photography": {
+    "label": "Photography",
+    "color": "#c5e1a5",
+    "match": [
+      "/photography/"
+    ],
+    "enabled": true
+  },
+  "navne": {
+    "label": "Navne",
+    "color": "#c5e1a5",
+    "match": [
+      "/navne/"
+    ],
+    "enabled": true
+  },
+  "technology": {
+    "label": "Technology",
+    "color": "#c5e1a5",
+    "match": [
+      "/technology/"
+    ],
+    "enabled": true
+  },
+  "other": {
+    "label": "Other",
+    "color": "#eeeeee",
+    "match": [],
+    "enabled": true
+  }
+}
