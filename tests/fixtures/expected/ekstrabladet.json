@@ -1,0 +1,32 @@
+[
+  {
+    "text": "Ekstra Bladet top story headline",
+    "score": 10,
+    "href": "https://ekstrabladet.dk/nyheder/story-a"
+  },
+  {
+    "text": "Heading without nested link text here",
+    "score": 9,
+    "href": null
+  },
+  {
+    "text": "Long enough soft link without hint class",
+    "score": 3,
+    "href": "https://ekstrabladet.dk/nyheder/long-enough-soft-link-without-hint-class"
+  },
+  {
+    "text": "Parent link wraps heading three",
+    "score": 8,
+    "href": "https://ekstrabladet.dk/nyheder/wrapped"
+  },
+  {
+    "text": "Short",
+    "score": 6,
+    "href": "https://ekstrabladet.dk/nyheder/class-hint"
+  },
+  {
+    "text": "Smaller heading level four text",
+    "score": 7,
+    "href": null
+  }
+]

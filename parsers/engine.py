@@ -154,18 +154,20 @@ def _apply_recipe_chain(value, recipe_spec, el=None):
         return value if isinstance(value, str) else recipe_text(value)
     names = recipe_spec if isinstance(recipe_spec, list) else [recipe_spec]
     current = value
+    string_recipes = {
+        "first_comma_chunk",
+        "first_comma_chunk_100",
+        "strip_dcr_quotes",
+    }
     for name in names:
         fn = get_recipe(name)
-        # Element-oriented recipes want the node; string transforms want the string.
-        if current is None or (not isinstance(current, str) and el is not None and current is el):
-            current = fn(el if el is not None else current)
-        elif isinstance(current, str) and name in (
-            "first_comma_chunk",
-            "strip_dcr_quotes",
-        ):
+        if isinstance(current, str) and name in string_recipes:
             current = fn(current)
+        elif not isinstance(current, str):
+            current = fn(el if el is not None else current)
         else:
-            current = fn(current if not hasattr(current, "get_text") else current)
+            # String already; allow recipes that accept strings or re-wrap.
+            current = fn(current)
     if not isinstance(current, str):
         current = recipe_text(current) if current is not None else ""
     return current
@@ -424,13 +426,18 @@ def _run_link_scan(soup, strategy: dict, collector: CandidateCollector) -> None:
         if class_hint:
             classes = " ".join(a.get("class", []) or []) + " " + (a.get("id") or "")
             text_val = recipe_text(a)
+            soft_min = int(strategy.get("soft_min_length", strategy.get("min_length", 25)))
             if HEADLINE_CLASS_HINTS.search(classes):
                 score = strategy.get("score", 6)
-            elif len(text_val) >= int(strategy.get("min_length", 25)):
+            elif len(text_val) >= soft_min:
                 score = strategy.get("soft_score", 3)
             else:
                 continue
-            if not _text_filters_ok(text_val, strategy):
+            # Class-hint path does not apply min_length (matches ekstrabladet.py).
+            filter_strategy = {
+                k: v for k, v in strategy.items() if k not in ("min_length", "soft_min_length")
+            }
+            if not _text_filters_ok(text_val, filter_strategy):
                 continue
             collector.add(text_val, href, score)
             continue
@@ -438,9 +445,6 @@ def _run_link_scan(soup, strategy: dict, collector: CandidateCollector) -> None:
         text_val, score = _resolve_title_from_spec(a, title_spec, default_score)
         if not text_val or not _text_filters_ok(text_val, strategy):
             continue
-        # Prefer aria-label fallback when text empty already handled; Guardian uses aria on link
-        if not text_val:
-            text_val = (a.get("aria-label") or "").strip()
         collector.add(text_val, href, score if score is not None else default_score)
 
 

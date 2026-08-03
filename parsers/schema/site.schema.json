@@ -45,6 +45,10 @@
         "text_drop_prefix": { "type": "array", "items": { "type": "string" } },
         "text_drop_regex": { "type": "array", "items": { "type": "string" } },
         "class_hint": { "type": "boolean" },
+        "soft_min_length": { "type": "integer", "minimum": 0 },
+        "soft_score": { "type": "number" },
+        "score_recipe": { "type": "string" },
+        "require_link": { "type": "boolean" },
         "tags": {
           "type": "array",
           "items": { "type": "string" }

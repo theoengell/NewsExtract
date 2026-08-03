@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<body>
+  <a data-link-name="news | article" href="/world/2024/jan/15/long-enough-guardian-article-title">
+    Long enough guardian article title for tests
+  </a>
+  <a data-link-name="news | article" href="/world/2024/jan/15/quoted">
+    He said double quotation mark hello there folks today
+  </a>
+  <a data-link-name="news | article" href="/world/2024/jan/15/concat">
+    First chunk of a very long concatenated card title here, second chunk should be dropped when over one hundred chars of total text length xx
+  </a>
+  <a data-link-name="news | article" href="/world/2024/jan/15/signup">
+    Sign up for our newsletter please now
+  </a>
+  <a data-link-name="news | article" href="/info/help/page">
+    Help page should be skipped by href filter always
+  </a>
+  <a data-link-name="nav" href="/world/2024/jan/15/not-article-attr">
+    Missing article data-link-name should not match pass one
+  </a>
+
+  <div class="wrap">
+    <h3 class="card-headline">Card headline long enough for guardian pass two</h3>
+    <div class="inner">
+      <a href="/uk/2024/feb/01/card-linked-story">link</a>
+    </div>
+  </div>
+
+  <h4 class="card-headline">Orphan card headline without article link nearby</h4>
+</body>
+</html>

@@ -1,0 +1,27 @@
+[
+  {
+    "text": "Card headline long enough for guardian pass two",
+    "score": 7,
+    "href": "https://www.theguardian.com/uk/2024/feb/01/card-linked-story"
+  },
+  {
+    "text": "First chunk of a very long concatenated card title here",
+    "score": 9,
+    "href": "https://www.theguardian.com/world/2024/jan/15/concat"
+  },
+  {
+    "text": "He said hello there folks today",
+    "score": 9,
+    "href": "https://www.theguardian.com/world/2024/jan/15/quoted"
+  },
+  {
+    "text": "Long enough guardian article title for tests",
+    "score": 9,
+    "href": "https://www.theguardian.com/world/2024/jan/15/long-enough-guardian-article-title"
+  },
+  {
+    "text": "Orphan card headline without article link nearby",
+    "score": 7,
+    "href": "https://www.theguardian.com/world/2024/jan/15/long-enough-guardian-article-title"
+  }
+]

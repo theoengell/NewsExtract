@@ -1,0 +1,57 @@
+id: guardian
+name: The Guardian
+language: en
+url: https://www.theguardian.com/international
+domains:
+  - theguardian.com
+  - guardian.com
+
+strategies:
+  - type: link_scan
+    match: 'a[data-link-name*="article"]'
+    href_must:
+      - "/20\\d{2}/[a-z]{3}/\\d{2}/"
+      - "/live/20\\d{2}/"
+      - "/ng-interactive/20\\d{2}/"
+    href_skip:
+      - "/info/"
+      - "/help/"
+      - "/email/"
+      - "/preference/"
+      - "/crosswords/"
+      - "/games/"
+      - "/tone/advertisement-features"
+      - "/sign-up"
+      - "/newsletter"
+    min_length: 20
+    text_drop_prefix:
+      - "sign up"
+      - "tell us:"
+      - "support the guardian"
+    title:
+      recipe: [text_or_aria, strip_dcr_quotes, first_comma_chunk_100]
+    score: 9
+
+  - type: heading_scan
+    match: ".card-headline, h3.card-headline, h4.card-headline"
+    min_length: 20
+    title:
+      recipe: [strip_dcr_quotes, first_comma_chunk]
+    link:
+      - from: ancestor
+        max_depth: 8
+        href_must:
+          - "/20\\d{2}/[a-z]{3}/\\d{2}/"
+          - "/live/20\\d{2}/"
+          - "/ng-interactive/20\\d{2}/"
+        href_skip:
+          - "/info/"
+          - "/help/"
+          - "/email/"
+          - "/preference/"
+          - "/crosswords/"
+          - "/games/"
+          - "/tone/advertisement-features"
+          - "/sign-up"
+          - "/newsletter"
+    score: 7

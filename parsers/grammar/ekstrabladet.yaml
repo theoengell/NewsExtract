@@ -1,0 +1,22 @@
+id: ekstrabladet
+name: Ekstra Bladet
+language: da
+url: https://ekstrabladet.dk/
+domains:
+  - ekstrabladet.dk
+
+strategies:
+  - type: heading_scan
+    tags: [h1, h2, h3, h4]
+    score_recipe: score_by_heading_level
+    require_link: false
+    title: { recipe: text }
+    link:
+      - { from: child, select: "a[href]" }
+      - { from: parent }
+
+  - type: link_scan
+    class_hint: true
+    soft_min_length: 25
+    score: 6
+    soft_score: 3
