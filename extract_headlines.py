@@ -980,6 +980,12 @@ def extract_from_site(mod, min_len, max_len, limit=None, url=None, parser_engine
     soup = BeautifulSoup(page_html, "html.parser")
     candidates, diff = extract_for_site(mod, soup, url, engine=parser_engine)
     _log_parser_diff(getattr(mod, "SITE_ID", "?"), diff)
+    if not candidates:
+        print(
+            f"Warning: {getattr(mod, 'SITE_ID', '?')} returned 0 raw candidates — "
+            f"check parsers/grammar/{getattr(mod, 'SITE_ID', 'site')}.yaml selectors",
+            file=sys.stderr,
+        )
     candidates = filter_by_length(candidates, min_len, max_len)
     candidates.sort(key=lambda c: (-c[1], len(c[0])))
     results = fuzzy_dedupe(candidates)

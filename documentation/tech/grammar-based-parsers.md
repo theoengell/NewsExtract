@@ -2,7 +2,8 @@
 
 Investigation into replacing imperative per-site Python modules (`parsers/*.py`) with a shared declarative grammar evaluated by one engine.
 
-**Implementation plan:** [grammar-parsers-implementation-plan.md](./grammar-parsers-implementation-plan.md)
+**Implementation plan:** [grammar-parsers-implementation-plan.md](./grammar-parsers-implementation-plan.md)  
+**Recipe authoring:** [grammar-recipes.md](./grammar-recipes.md)
 
 ---
 

@@ -11,7 +11,6 @@ from __future__ import annotations
 from urllib.parse import urlparse
 
 from .base import normalize_domain
-from .engine import GrammarSite, discover_grammar_sites, get_grammar_by_id
 
 # Default extract engine. ``py`` / ``both`` remain for debugging if legacy
 # modules are reintroduced; production uses ``grammar``.
@@ -24,10 +23,14 @@ class UnsupportedSiteError(ValueError):
 
 def discover_parsers():
     """Return grammar sites sorted by SITE_ID."""
+    from .engine import discover_grammar_sites
+
     return discover_grammar_sites()
 
 
 def _build_registry():
+    from .engine import discover_grammar_sites
+
     sites = discover_grammar_sites()
     grammar_by_id = {g.SITE_ID: g for g in sites}
     registry = {}
@@ -68,6 +71,12 @@ def get_parser_by_id(site_id: str):
     )
 
 
+def get_grammar_site(site_id: str):
+    from .engine import get_grammar_by_id
+
+    return get_grammar_by_id(site_id)
+
+
 def get_parser(url: str):
     """
     Resolve a site parser for `url`.
@@ -100,7 +109,7 @@ def extract_for_site(mod, soup, base_url: str, engine: str | None = None):
 
     Returns (candidates, diff_info_or_None).
     """
-    from .engine import compare_candidates
+    from .engine import GrammarSite, compare_candidates, get_grammar_by_id
 
     mode = (engine or PARSER_ENGINE or "grammar").strip().lower()
     site_id = getattr(mod, "SITE_ID", None)

@@ -217,11 +217,11 @@ strategies:
 
 3. Prefer existing strategy types (`card`, `link_scan`, `heading_scan`, `select`) and recipes in `parsers/recipes.py`. Add a new named recipe only when CSS/filters are not enough.
 4. Optional: `fetch_timeout` on the grammar for a custom fetch timeout.
-5. Validate: `python -m parsers.engine --validate`
+5. Validate: `python -m parsers --validate` (or `python -m parsers.engine --validate`)
 6. Run `python extract_headlines.py --list-sites` — the new site should appear.
 7. Run with `--update` (and optionally `--only site_id`). Logo is fetched into `logos/` when possible.
 
-Shared helpers live in `parsers/base.py` (noise filtering, glued-headline cleanup, TeaserLink helpers, etc.). Design notes: [documentation/tech/grammar-based-parsers.md](documentation/tech/grammar-based-parsers.md).
+Shared helpers live in `parsers/base.py` (noise filtering, glued-headline cleanup, TeaserLink helpers, etc.). Design notes: [documentation/tech/grammar-based-parsers.md](documentation/tech/grammar-based-parsers.md). Recipe checklist: [documentation/tech/grammar-recipes.md](documentation/tech/grammar-recipes.md).
 
 ---
 

@@ -573,7 +573,11 @@ def compare_candidates(py_cands, grammar_cands):
 def main(argv=None):
     argv = argv if argv is not None else sys.argv[1:]
     if not argv or argv[0] in ("-h", "--help"):
-        print("Usage: python -m parsers.engine --validate", file=sys.stderr)
+        print(
+            "Usage: python -m parsers --validate\n"
+            "       python -m parsers.engine --validate",
+            file=sys.stderr,
+        )
         return 2
     if argv[0] == "--validate":
         errors = validate_all()
