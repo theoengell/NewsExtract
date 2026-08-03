@@ -17,7 +17,7 @@ Created by **Theo Engell**.
 - **HTML dashboard** (`headlines.html`) with:
   - Per-site sections (logo + title; click to collapse/expand)
   - Collapsed headers show new-article counts when there are any
-  - **All new** unified feed across sites
+  - **All new** unified feed across sites (also click to collapse/expand)
   - **Opened today** list; dim opened links
   - Category colouring from URL path patterns
   - Languages (Danish / English) on/off
@@ -172,7 +172,7 @@ Open `headlines.html` after a run (or let the script open it).
 
 ### Per site
 
-- Click the **logo or title** to collapse/expand
+- Click the **logo or title** to collapse/expand (same for **All new**)
 - Collapsed: right-aligned “N new articles” when there are new items
 - **New since last run** and **Previously seen (x of y)**
 - Previously seen pagination: `Previous X` · `(z of w)` · `Next X` (page size = Settings → previously seen limit). Short last pages are padded so height stays stable.

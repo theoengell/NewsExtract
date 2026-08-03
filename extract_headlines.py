@@ -1377,15 +1377,26 @@ def _render_all_new_section(
 
     hidden_class = "" if show_all_new else " hidden"
     if not rows:
-        body = '    <p class="empty">No new headlines across enabled sites.</p>'
+        body = '      <p class="empty">No new headlines across enabled sites.</p>'
         count = 0
     else:
-        body = f"    <ol class=\"all-new-list\">\n" + "\n".join(rows) + "\n    </ol>"
+        body = (
+            f'      <ol class="all-new-list">\n'
+            + "\n".join(rows)
+            + "\n      </ol>"
+        )
         count = len(rows)
 
-    return f"""  <section class="all-new{hidden_class}" id="all-new" data-panel="all-new">
-    <h2 class="site-title">All new <span class="count-inline" id="all-new-count">({count})</span></h2>
+    return f"""  <section class="all-new{hidden_class}" id="all-new" data-panel="all-new" data-collapse-id="all-new">
+    <h2 class="site-title">
+      <button type="button" class="site-collapse-toggle" aria-expanded="true" aria-controls="all-new-body" title="Collapse or expand">
+        <span class="site-name">All new</span>
+      </button>
+      <span class="count-inline" id="all-new-count">({count})</span>
+    </h2>
+    <div class="site-body" id="all-new-body">
 {body}
+    </div>
   </section>"""
 
 
@@ -1989,6 +2000,11 @@ def build_combined_html(site_blocks, categories, sites_config, site_domains):
   }}
   section.all-new.hidden,
   section.opened-today.hidden {{ display: none; }}
+  section.all-new.collapsed {{
+    padding-bottom: 1em;
+  }}
+  section.all-new.collapsed > .site-body {{ display: none; }}
+  section.all-new.collapsed > .site-title {{ margin-bottom: 0; }}
   .count-inline {{
     color: var(--muted);
     font-weight: 500;
@@ -2538,6 +2554,10 @@ def build_combined_html(site_blocks, categories, sites_config, site_domains):
     document.querySelectorAll("section.site[data-site]").forEach(function (sec) {{
       state[sec.getAttribute("data-site")] = sec.classList.contains("collapsed");
     }});
+    const allNew = document.getElementById("all-new");
+    if (allNew) {{
+      state["all-new"] = allNew.classList.contains("collapsed");
+    }}
     return state;
   }}
 
@@ -2549,11 +2569,18 @@ def build_combined_html(site_blocks, categories, sites_config, site_domains):
       const btn = sec.querySelector(".site-collapse-toggle");
       if (btn) btn.setAttribute("aria-expanded", collapsed ? "false" : "true");
     }});
+    const allNew = document.getElementById("all-new");
+    if (allNew) {{
+      const collapsed = state["all-new"] === true;
+      allNew.classList.toggle("collapsed", collapsed);
+      const btn = allNew.querySelector(".site-collapse-toggle");
+      if (btn) btn.setAttribute("aria-expanded", collapsed ? "false" : "true");
+    }}
   }}
 
-  document.querySelectorAll("section.site .site-collapse-toggle").forEach(function (btn) {{
+  document.querySelectorAll("section.site .site-collapse-toggle, section.all-new .site-collapse-toggle").forEach(function (btn) {{
     btn.addEventListener("click", function () {{
-      const sec = btn.closest("section.site");
+      const sec = btn.closest("section.site, section.all-new");
       if (!sec) return;
       const collapsed = !sec.classList.contains("collapsed");
       sec.classList.toggle("collapsed", collapsed);
