@@ -61,7 +61,8 @@
       "borsen",
       "fyens",
       "sn",
-      "newz"
+      "newz",
+      "slashdot"
     ],
     "show_all_new": true,
     "dim_opened": true,
@@ -126,5 +127,11 @@
     "name": "Newz",
     "url": "https://newz.dk/",
     "language": "da"
+  },
+  "slashdot": {
+    "enabled": true,
+    "name": "Slashdot",
+    "url": "https://slashdot.org/",
+    "language": "en"
   }
 }

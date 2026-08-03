@@ -1,0 +1,21 @@
+id: slashdot
+name: Slashdot
+language: en
+url: https://slashdot.org/
+domains:
+  - slashdot.org
+
+strategies:
+  - type: card
+    container: "article.fhitem-story, article.article"
+    title: "h2.story .story-title > a[href], h2.story a[href]"
+    link: "h2.story .story-title > a[href]"
+    link_fallback: "h2.story a[href*='/story/']"
+    href_must:
+      - "/story/"
+    href_skip:
+      - "#comments"
+      - "/users/"
+      - "/index2.pl"
+    min_length: 20
+    score: 9
