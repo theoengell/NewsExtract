@@ -970,6 +970,22 @@
     ],
     "enabled": true
   },
+  "arbejdsliv": {
+    "label": "Arbejdsliv",
+    "color": "#c5e1a5",
+    "match": [
+      "/arbejdsliv/"
+    ],
+    "enabled": true
+  },
+  "laesere": {
+    "label": "Laesere",
+    "color": "#c5e1a5",
+    "match": [
+      "/laesere/"
+    ],
+    "enabled": true
+  },
   "other": {
     "label": "Other",
     "color": "#eeeeee",

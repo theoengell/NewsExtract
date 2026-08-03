@@ -60,7 +60,8 @@
       "jyllandsposten",
       "borsen",
       "fyens",
-      "sn"
+      "sn",
+      "newz"
     ],
     "show_all_new": true,
     "dim_opened": true,
@@ -118,6 +119,12 @@
     "enabled": true,
     "name": "Sjællandske Nyheder",
     "url": "https://www.sn.dk/",
+    "language": "da"
+  },
+  "newz": {
+    "enabled": true,
+    "name": "Newz",
+    "url": "https://newz.dk/",
     "language": "da"
   }
 }

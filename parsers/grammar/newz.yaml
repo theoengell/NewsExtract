@@ -1,0 +1,19 @@
+id: newz
+name: Newz
+language: da
+url: https://newz.dk/
+domains:
+  - newz.dk
+
+strategies:
+  - type: card
+    container: "div.newz-item"
+    title: "h1"
+    link: "h1 a[href]"
+    link_fallback: "a[href]"
+    href_skip:
+      - "/forum"
+      - "/user/"
+      - "/login"
+    min_length: 16
+    score: 9
