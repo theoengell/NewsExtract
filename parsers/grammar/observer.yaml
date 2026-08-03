@@ -1,0 +1,22 @@
+id: observer
+name: The Observer
+language: en
+url: https://observer.co.uk/
+domains:
+  - observer.co.uk
+
+strategies:
+  - type: heading_scan
+    tags: [h1, h2, h3]
+    href_must: ["/article/"]
+    href_skip:
+      - "/culture-club/?$"
+      - "/newsletter"
+      - "/subscribe"
+      - "/login"
+      - "/account"
+    min_length: 18
+    score: 9
+    link:
+      - { from: child, select: "a[href]" }
+      - { from: parent }

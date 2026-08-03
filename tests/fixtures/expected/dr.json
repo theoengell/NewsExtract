@@ -1,0 +1,32 @@
+[
+  {
+    "text": "DR card title text preferred",
+    "score": 9,
+    "href": "https://www.dr.dk/nyheder/artikel-a"
+  },
+  {
+    "text": "DR front page item title",
+    "score": 9,
+    "href": "https://www.dr.dk/nyheder/artikel-b"
+  },
+  {
+    "text": "Standalone teaser outside card",
+    "score": 7,
+    "href": "https://www.dr.dk/nyheder/standalone"
+  },
+  {
+    "text": "teaser",
+    "score": 7,
+    "href": "https://www.dr.dk/nyheder/artikel-a"
+  },
+  {
+    "text": "Uses teaser title as text",
+    "score": 9,
+    "href": "https://www.dr.dk/nyheder/artikel-c"
+  },
+  {
+    "text": "x",
+    "score": 7,
+    "href": "https://www.dr.dk/nyheder/artikel-c"
+  }
+]

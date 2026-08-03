@@ -1,0 +1,22 @@
+id: dr
+name: DR
+language: da
+url: https://www.dr.dk/
+domains:
+  - dr.dk
+
+strategies:
+  - type: card
+    container: ".hydra-card, .hydra-front-page-item"
+    title:
+      - { from: self, select: ".hydra-card-title__text", score: 9 }
+      - { from: self, select: ".hydra-card-title", score: 9 }
+      - { from: self, select: ".hydra-teaser-title", score: 9 }
+    link: "a.hydra-teaser-title[href]"
+    link_fallback: "a[href]"
+    score: 9
+  - type: select
+    match: "a.hydra-teaser-title[href]"
+    title: { recipe: text }
+    link: { from: self }
+    score: 7
