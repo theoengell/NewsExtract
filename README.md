@@ -1,0 +1,2 @@
+# NewsExtract
+Extractor of news
