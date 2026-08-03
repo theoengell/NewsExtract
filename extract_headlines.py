@@ -3333,8 +3333,8 @@ def main():
         "--parser-engine",
         choices=("py", "grammar", "both"),
         default=_DEFAULT_PARSER_ENGINE,
-        help="Headline extract engine: imperative Python modules (py), "
-             "YAML grammar (grammar), or compare both (both; uses py output)",
+        help="Headline extract engine: YAML grammar (grammar, default), "
+             "legacy alias py, or both (self-check; uses primary output)",
     )
     args = parser.parse_args()
     verbose = args.verbose or args.with_links
@@ -3343,7 +3343,11 @@ def main():
     refresh()
     parsers = list(PARSERS)
     if not parsers:
-        print("No site parsers found in parsers/. Add a module with NAME, DEFAULT_URL, extract().", file=sys.stderr)
+        print(
+            "No site parsers found in parsers/grammar/. "
+            "Add a YAML grammar with id/name/url/strategies.",
+            file=sys.stderr,
+        )
         sys.exit(1)
 
     sites_config = load_sites_config(args.sites_file, parsers)

@@ -10,7 +10,8 @@ Created by **Theo Engell**.
 
 ## Features
 
-- **Multi-site parsers** — Berlingske, BT, DR, Ekstra Bladet, Politiken, TV 2 Nyheder, Weekendavisen, The Guardian, The New York Times, The Observer
+- **Multi-site parsers** — Berlingske, BT, DR, Ekstra Bladet, Politiken, TV 2 Nyheder, Weekendavisen, The Guardian, The New York Times, The Observer (YAML grammars under `parsers/grammar/`)
+- **Grammar engine** — one interpreter for all sites; see [documentation/tech/grammar-based-parsers.md](documentation/tech/grammar-based-parsers.md)
 - **Cache-first** — default run rebuilds the dashboard from `headlines_cache.json` with no network; use `--update` to fetch fresh pages
 - **New vs previously seen** — compares against the cache so you can scan what’s changed since last update
 - **HTML dashboard** (`headlines.html`) with:
@@ -102,13 +103,14 @@ C:\source\repos\NewsExtract\
 ├── logos/                 # Site logos + NewsExtract brand assets
 ├── fonts/                 # Bundled Lato fonts
 ├── parsers/
-│   ├── __init__.py        # Auto-discovers parsers
+│   ├── __init__.py        # Discovers grammar sites
 │   ├── base.py            # Shared noise filters / text cleanup
-│   ├── berlingske.py
-│   ├── bt.py
-│   ├── dr.py
-│   ├── …
-│   └── weekendavisen.py
+│   ├── engine.py          # YAML grammar interpreter
+│   ├── recipes.py         # Named title/link transforms
+│   ├── schema/            # JSON Schema for grammars
+│   └── grammar/           # One YAML file per site
+├── tests/                 # Schema + fixture parity tests
+├── documentation/tech/    # Design + implementation plan
 └── README.md
 ```
 
@@ -118,7 +120,7 @@ C:\source\repos\NewsExtract\
 
 ### `sites.json`
 
-Each site key matches a parser module name (`parsers/<id>.py`):
+Each site key matches a grammar file stem (`parsers/grammar/<id>.yaml`):
 
 ```json
 "ekstrabladet": {
@@ -193,38 +195,41 @@ Browser preferences use `localStorage` keys under the `newsextract.` prefix (sit
 
 ## Adding a site parser
 
-1. Create `parsers/<site_id>.py` (module name = site id in `sites.json`).
-2. Define at least:
+1. Create `parsers/grammar/<site_id>.yaml` (stem = site id in `sites.json`).
+2. Define metadata and one or more strategies, for example:
 
-```python
-DOMAINS = ("example.com",)
-NAME = "Example News"
-LANGUAGE = "en"          # "da" or "en"
-DEFAULT_URL = "https://www.example.com/"
+```yaml
+id: example
+name: Example News
+language: en
+url: https://www.example.com/
+domains:
+  - example.com
 
-def extract(soup, base_url):
-    """
-    Return list of (text, score, href, pos).
-    Higher score / earlier pos tends to rank higher after dedupe.
-    """
-    results = []
-    # ... parse BeautifulSoup `soup` ...
-    return results
+strategies:
+  - type: card
+    container: ".teaser"
+    title: "h2.title"
+    link: "a.teaser-link[href]"
+    link_fallback: "a[href]"
+    score: 9
 ```
 
-3. Optional: `FETCH_TIMEOUT` on the module for a custom fetch timeout.
-4. Run `python extract_headlines.py --list-sites` — the new parser should appear.
-5. Run with `--update` (and optionally `--only site_id`). Logo is fetched into `logos/` when possible.
+3. Prefer existing strategy types (`card`, `link_scan`, `heading_scan`, `select`) and recipes in `parsers/recipes.py`. Add a new named recipe only when CSS/filters are not enough.
+4. Optional: `fetch_timeout` on the grammar for a custom fetch timeout.
+5. Validate: `python -m parsers.engine --validate`
+6. Run `python extract_headlines.py --list-sites` — the new site should appear.
+7. Run with `--update` (and optionally `--only site_id`). Logo is fetched into `logos/` when possible.
 
-Modules named `base` or starting with `_` are ignored. Shared helpers live in `parsers/base.py` (noise filtering, glued-headline cleanup, TeaserLink helpers, etc.).
+Shared helpers live in `parsers/base.py` (noise filtering, glued-headline cleanup, TeaserLink helpers, etc.). Design notes: [documentation/tech/grammar-based-parsers.md](documentation/tech/grammar-based-parsers.md).
 
 ---
 
 ## How the pipeline works
 
-1. Discover parsers in `parsers/`
+1. Discover grammars in `parsers/grammar/`
 2. Load `sites.json` / `categories.json` / cache
-3. If `--update`: fetch each enabled front page → `extract()` → length filter → fuzzy dedupe → merge by href
+3. If `--update`: fetch each enabled front page → grammar `extract()` → length filter → fuzzy dedupe → merge by href
 4. Compare to cache → mark new vs seen → update cache
 5. Print short CLI summary (or verbose lists)
 6. Build `headlines.html` and open it (unless `--no-html`)
