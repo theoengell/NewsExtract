@@ -1,0 +1,17 @@
+[
+  {
+    "text": "Another long enough NYT link text without heading element",
+    "score": 6,
+    "href": "https://www.nytimes.com/2024/05/02/us/another-long-enough-nyt-link-text-without-heading-element"
+  },
+  {
+    "text": "Long enough live blog headline text here for tests",
+    "score": 6,
+    "href": "https://www.nytimes.com/live/2024/election/long-enough-live-blog-headline-text-here"
+  },
+  {
+    "text": "Long enough NYT headline for the length filter here",
+    "score": 9,
+    "href": "https://www.nytimes.com/2024/05/01/world/long-enough-nyt-headline-for-filter"
+  }
+]

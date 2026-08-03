@@ -1,0 +1,31 @@
+id: nytimes
+name: The New York Times
+language: en
+url: https://www.nytimes.com/
+domains:
+  - nytimes.com
+
+strategies:
+  - type: link_scan
+    href_must:
+      - "/20\\d{2}/\\d{2}/\\d{2}/"
+      - "/live/20\\d{2}/"
+      - "/interactive/20\\d{2}/"
+    href_skip:
+      - "/athletic/"
+      - "/wirecutter/"
+      - "/cooking/"
+      - "/crosswords/"
+      - "/games/"
+      - "/subscriptions?/"
+      - "/section/"
+      - "/by/"
+      - "/column/"
+      - "/newsletters?/"
+      - "/podcasts?/the-headlines"
+    min_length: 28
+    text_drop_regex:
+      - "(?:for The New York Times|/The New York Times$|^The Headlines Audio)"
+    title:
+      - { from: self, select: "h1, h2, h3, h4", score: 9 }
+      - { from: self, recipe: text, score: 6 }

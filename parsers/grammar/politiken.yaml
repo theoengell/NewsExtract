@@ -1,0 +1,19 @@
+id: politiken
+name: Politiken
+language: da
+url: https://politiken.dk/
+domains:
+  - politiken.dk
+
+strategies:
+  - type: link_scan
+    href_must: ["/art\\d+"]
+    href_skip:
+      - "/om_politiken/"
+      - "/shop/"
+      - "/tag/"
+    min_length: 12
+    title:
+      - { from: self, select: "h1, h2, h3, h4, h5", score: 9 }
+      - { from: parent, tag: article, select: "h1, h2, h3, h4, h5", score: 8 }
+      - { from: self, recipe: text, score: 5 }

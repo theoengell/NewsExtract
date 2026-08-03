@@ -1,0 +1,15 @@
+id: weekendavisen
+name: Weekendavisen
+language: da
+url: https://www.weekendavisen.dk/
+domains:
+  - weekendavisen.dk
+
+strategies:
+  - type: select
+    match: "a[class*='TeaserLink_link'][href]"
+    title: { recipe: teaserlink_fluid_lines }
+    link: { from: self }
+    href_skip:
+      - "/video/reels/"
+    score: 9

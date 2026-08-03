@@ -1,0 +1,17 @@
+id: bt
+name: BT
+language: da
+url: https://www.bt.dk/
+domains:
+  - bt.dk
+
+strategies:
+  - type: select
+    match: "a[class*='TeaserLink_link'][href]"
+    title: { recipe: teaserlink_fluid_lines }
+    link: { from: self }
+    href_skip:
+      - "/video/reels/"
+    href_skip_endswith:
+      - "/video"
+    score: 9

@@ -1,0 +1,17 @@
+[
+  {
+    "text": "Heading beside link in article wrapper",
+    "score": 8,
+    "href": "https://politiken.dk/kultur/art999001/side-link"
+  },
+  {
+    "text": "Plain link only text here xx",
+    "score": 5,
+    "href": "https://politiken.dk/sport/art555/plain-link-only-text-here"
+  },
+  {
+    "text": "Politiken heading inside article link text",
+    "score": 9,
+    "href": "https://politiken.dk/danmark/art123456/story"
+  }
+]
