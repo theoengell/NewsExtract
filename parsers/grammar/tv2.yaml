@@ -1,0 +1,15 @@
+id: tv2
+name: TV 2 Nyheder
+language: da
+url: https://nyheder.tv2.dk/
+domains:
+  - nyheder.tv2.dk
+  - tv2.dk
+
+strategies:
+  - type: card
+    container: ".tc_teaser"
+    title: "h2.tc_heading, h3.tc_heading, h4.tc_heading, .tc_heading"
+    link: "a.tc_teaser__link[href]"
+    link_fallback: "a[href]"
+    score: 9

@@ -1,0 +1,17 @@
+[
+  {
+    "text": "Alpha headline about politics",
+    "score": 9,
+    "href": "https://nyheder.tv2.dk/artikel/alpha"
+  },
+  {
+    "text": "Beta story from the front page",
+    "score": 9,
+    "href": "https://nyheder.tv2.dk/artikel/beta"
+  },
+  {
+    "text": "Gamma uses fallback link selector",
+    "score": 9,
+    "href": "https://nyheder.tv2.dk/artikel/gamma-fallback"
+  }
+]

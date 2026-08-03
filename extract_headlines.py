@@ -40,7 +40,16 @@ from urllib.parse import unquote, urljoin, urlparse
 import requests
 from bs4 import BeautifulSoup
 
-from parsers import PARSERS, UnsupportedSiteError, get_parser_by_id, list_sites, refresh
+from parsers import (
+    PARSERS,
+    UnsupportedSiteError,
+    extract_for_site,
+    get_parser_by_id,
+    list_sites,
+    refresh,
+)
+from parsers import PARSER_ENGINE as _DEFAULT_PARSER_ENGINE
+import parsers as parsers_pkg
 from parsers.base import normalize_domain, normalize_for_dedup
 
 DEFAULT_CACHE_FILE = "headlines_cache.json"
@@ -942,12 +951,35 @@ def load_results_from_cache(cache, source_url, limit=None):
     return [], results, False, True
 
 
-def extract_from_site(mod, min_len, max_len, limit=None, url=None):
+def _log_parser_diff(site_id, diff):
+    if not diff:
+        return
+    if diff.get("missing_grammar"):
+        print(
+            f"[parser-engine=both] {site_id}: no grammar file (using Python)",
+            file=sys.stderr,
+        )
+        return
+    n_py = len(diff.get("only_py") or [])
+    n_gr = len(diff.get("only_grammar") or [])
+    n_score = len(diff.get("score_mismatch") or [])
+    if diff.get("ok"):
+        print(f"[parser-engine=both] {site_id}: OK (parity)", file=sys.stderr)
+        return
+    print(
+        f"[parser-engine=both] {site_id}: DIFF "
+        f"only_py={n_py} only_grammar={n_gr} score_mismatch={n_score}",
+        file=sys.stderr,
+    )
+
+
+def extract_from_site(mod, min_len, max_len, limit=None, url=None, parser_engine=None):
     url = url or mod.DEFAULT_URL
     timeout = int(getattr(mod, "FETCH_TIMEOUT", 15) or 15)
     page_html = fetch_html(url, timeout=timeout)
     soup = BeautifulSoup(page_html, "html.parser")
-    candidates = mod.extract(soup, url)
+    candidates, diff = extract_for_site(mod, soup, url, engine=parser_engine)
+    _log_parser_diff(getattr(mod, "SITE_ID", "?"), diff)
     candidates = filter_by_length(candidates, min_len, max_len)
     candidates.sort(key=lambda c: (-c[1], len(c[0])))
     results = fuzzy_dedupe(candidates)
@@ -3297,8 +3329,16 @@ def main():
         default=DEFAULT_SITES_FILE,
         help=f"Per-site enabled flags (default: {DEFAULT_SITES_FILE})",
     )
+    parser.add_argument(
+        "--parser-engine",
+        choices=("py", "grammar", "both"),
+        default=_DEFAULT_PARSER_ENGINE,
+        help="Headline extract engine: imperative Python modules (py), "
+             "YAML grammar (grammar), or compare both (both; uses py output)",
+    )
     args = parser.parse_args()
     verbose = args.verbose or args.with_links
+    parsers_pkg.PARSER_ENGINE = args.parser_engine
 
     refresh()
     parsers = list(PARSERS)
@@ -3400,7 +3440,12 @@ def main():
         else:
             try:
                 results, url, page_html = extract_from_site(
-                    mod, args.min_len, args.max_len, args.limit, url=url
+                    mod,
+                    args.min_len,
+                    args.max_len,
+                    args.limit,
+                    url=url,
+                    parser_engine=args.parser_engine,
                 )
             except requests.RequestException as e:
                 print(f"Error fetching {url}: {e}", file=sys.stderr)

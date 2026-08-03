@@ -35,10 +35,12 @@ Created by **Theo Engell**.
 - Dependencies:
 
 ```bash
-pip install requests beautifulsoup4
+pip install requests beautifulsoup4 pyyaml jsonschema
 ```
 
-(On some Linux setups you may need `pip install requests beautifulsoup4 --break-system-packages`.)
+(On some Linux setups you may need `pip install requests beautifulsoup4 pyyaml jsonschema --break-system-packages`.)
+
+Optional for tests: `pip install pytest`.
 
 ---
 
@@ -70,11 +72,13 @@ The script writes `headlines.html` and opens it in your default browser (unless 
 | `python extract_headlines.py --no-html` | Console only (no HTML write/open) |
 | `python extract_headlines.py --limit 20 -o headlines.txt` | Cap list length; write titles to a file |
 | `python extract_headlines.py --with-links` | Print title + URL (implies verbose) |
+| `python extract_headlines.py --parser-engine both --only tv2` | Compare Python vs grammar extract |
 
 ### Useful options
 
 | Option | Description |
 |--------|-------------|
+| `--parser-engine` | `py` (default), `grammar`, or `both` (parity check; uses py output) |
 | `--min-len` / `--max-len` | Headline length filter (defaults 8 / 200) |
 | `--html [PATH]` | HTML output path (default `headlines.html`) |
 | `--cache-file PATH` | Cache file (default `headlines_cache.json`) |
