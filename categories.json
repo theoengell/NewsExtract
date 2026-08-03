@@ -674,6 +674,110 @@
     ],
     "enabled": true
   },
+  "kerteminde": {
+    "label": "Kerteminde",
+    "color": "#c5e1a5",
+    "match": [
+      "/kerteminde/"
+    ],
+    "enabled": true
+  },
+  "odense": {
+    "label": "Odense",
+    "color": "#c5e1a5",
+    "match": [
+      "/odense/"
+    ],
+    "enabled": true
+  },
+  "assens": {
+    "label": "Assens",
+    "color": "#c5e1a5",
+    "match": [
+      "/assens/"
+    ],
+    "enabled": true
+  },
+  "faaborg-midtfyn": {
+    "label": "Faaborg Midtfyn",
+    "color": "#c5e1a5",
+    "match": [
+      "/faaborg-midtfyn/"
+    ],
+    "enabled": true
+  },
+  "fynskemennesker": {
+    "label": "Fynskemennesker",
+    "color": "#c5e1a5",
+    "match": [
+      "/fynskemennesker/"
+    ],
+    "enabled": true
+  },
+  "nordfyn": {
+    "label": "Nordfyn",
+    "color": "#c5e1a5",
+    "match": [
+      "/nordfyn/"
+    ],
+    "enabled": true
+  },
+  "middelfart": {
+    "label": "Middelfart",
+    "color": "#c5e1a5",
+    "match": [
+      "/middelfart/"
+    ],
+    "enabled": true
+  },
+  "fyn": {
+    "label": "Fyn",
+    "color": "#c5e1a5",
+    "match": [
+      "/fyn/"
+    ],
+    "enabled": true
+  },
+  "fynmodlarven": {
+    "label": "Fynmodlarven",
+    "color": "#c5e1a5",
+    "match": [
+      "/fynmodlarven/"
+    ],
+    "enabled": true
+  },
+  "lyttilanholdt": {
+    "label": "Lyttilanholdt",
+    "color": "#c5e1a5",
+    "match": [
+      "/lyttilanholdt/"
+    ],
+    "enabled": true
+  },
+  "nyborg": {
+    "label": "Nyborg",
+    "color": "#c5e1a5",
+    "match": [
+      "/nyborg/"
+    ],
+    "enabled": true
+  },
+  "byensbedste": {
+    "label": "Byensbedste",
+    "color": "#c5e1a5",
+    "match": [
+      "/byensbedste/"
+    ],
+    "enabled": true
+  },
+  "sydfyn": {
+    "label": "Sydfyn",
+    "color": "#c5e1a5",
+    "match": [
+      "/sydfyn/"
+    ],
+    "enabled": true
+  },
   "other": {
     "label": "Other",
     "color": "#eeeeee",

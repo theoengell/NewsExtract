@@ -58,7 +58,8 @@
       "nytimes",
       "observer",
       "jyllandsposten",
-      "borsen"
+      "borsen",
+      "fyens"
     ],
     "show_all_new": true,
     "dim_opened": true,
@@ -104,6 +105,12 @@
     "enabled": true,
     "name": "Børsen",
     "url": "https://borsen.dk/",
+    "language": "da"
+  },
+  "fyens": {
+    "enabled": true,
+    "name": "Fyens Stiftstidende",
+    "url": "https://fyens.dk/",
     "language": "da"
   }
 }

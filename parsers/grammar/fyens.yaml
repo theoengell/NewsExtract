@@ -1,0 +1,26 @@
+id: fyens
+name: Fyens Stiftstidende
+language: da
+url: https://fyens.dk/
+domains:
+  - fyens.dk
+
+strategies:
+  - type: select
+    match: "a.teaser__link[href]"
+    title:
+      - { from: self, select: "h1, h2, h3, h4, h5", score: 9 }
+      - { from: self, recipe: text, score: 8 }
+      - { from: self, recipe: aria_label, score: 7 }
+    link: { from: self }
+    href_must:
+      - "/[^/]+/[^/?]+"
+    href_skip:
+      - "/spil"
+      - "/shopping"
+      - "/abonnement"
+      - "/login"
+      - "/tag/"
+      - "/plus/"
+    min_length: 16
+    score: 9
