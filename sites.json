@@ -57,7 +57,8 @@
       "guardian",
       "nytimes",
       "observer",
-      "jyllandsposten"
+      "jyllandsposten",
+      "borsen"
     ],
     "show_all_new": true,
     "dim_opened": true,
@@ -97,6 +98,12 @@
     "enabled": true,
     "name": "Jyllands-Posten",
     "url": "https://jyllands-posten.dk/",
+    "language": "da"
+  },
+  "borsen": {
+    "enabled": true,
+    "name": "Børsen",
+    "url": "https://borsen.dk/",
     "language": "da"
   }
 }

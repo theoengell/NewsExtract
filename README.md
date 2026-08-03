@@ -10,7 +10,7 @@ Created by **Theo Engell**.
 
 ## Features
 
-- **Multi-site parsers** — Berlingske, BT, DR, Ekstra Bladet, Jyllands-Posten, Politiken, TV 2 Nyheder, Weekendavisen, The Guardian, The New York Times, The Observer (YAML grammars under `parsers/grammar/`)
+- **Multi-site parsers** — Berlingske, BT, Børsen, DR, Ekstra Bladet, Jyllands-Posten, Politiken, TV 2 Nyheder, Weekendavisen, The Guardian, The New York Times, The Observer (YAML grammars under `parsers/grammar/`)
 - **Grammar engine** — one interpreter for all sites; see [documentation/tech/grammar-based-parsers.md](documentation/tech/grammar-based-parsers.md)
 - **Cache-first** — default run rebuilds the dashboard from `headlines_cache.json` with no network; use `--update` to fetch fresh pages
 - **New vs previously seen** — compares against the cache so you can scan what’s changed since last update

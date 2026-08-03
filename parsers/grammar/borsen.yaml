@@ -1,0 +1,34 @@
+id: borsen
+name: Børsen
+language: da
+url: https://borsen.dk/
+domains:
+  - borsen.dk
+
+strategies:
+  - type: select
+    match: "a.teaser-title-link[href]"
+    title:
+      - { from: self, select: "h1, h2, h3, h4, h5", score: 9 }
+      - { from: self, recipe: text, score: 9 }
+    link: { from: self }
+    href_skip:
+      - "/produkter"
+      - "/login"
+      - "/abonnement"
+      - "/tag/"
+    min_length: 16
+    score: 9
+
+  - type: link_scan
+    href_must:
+      - "/nyheder/"
+      - "article-id=\\d+"
+    href_skip:
+      - "/produkter"
+      - "/login"
+      - "/abonnement"
+      - "/tag/"
+    min_length: 16
+    title:
+      - { from: self, select: "h1, h2, h3, h4, h5", score: 8 }
