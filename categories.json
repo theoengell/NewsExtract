@@ -626,6 +626,54 @@
     ],
     "enabled": true
   },
+  "international": {
+    "label": "International",
+    "color": "#c5e1a5",
+    "match": [
+      "/international/"
+    ],
+    "enabled": true
+  },
+  "nyhedsoverblik": {
+    "label": "Nyhedsoverblik",
+    "color": "#c5e1a5",
+    "match": [
+      "/nyhedsoverblik/"
+    ],
+    "enabled": true
+  },
+  "biler": {
+    "label": "Biler",
+    "color": "#c5e1a5",
+    "match": [
+      "/biler/"
+    ],
+    "enabled": true
+  },
+  "bolig": {
+    "label": "Bolig",
+    "color": "#c5e1a5",
+    "match": [
+      "/bolig/"
+    ],
+    "enabled": true
+  },
+  "velkommen": {
+    "label": "Velkommen",
+    "color": "#c5e1a5",
+    "match": [
+      "/velkommen/"
+    ],
+    "enabled": true
+  },
+  "jpaarhus": {
+    "label": "Jpaarhus",
+    "color": "#c5e1a5",
+    "match": [
+      "/jpaarhus/"
+    ],
+    "enabled": true
+  },
   "other": {
     "label": "Other",
     "color": "#eeeeee",

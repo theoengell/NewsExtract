@@ -1,0 +1,23 @@
+id: jyllandsposten
+name: Jyllands-Posten
+language: da
+url: https://jyllands-posten.dk/
+domains:
+  - jyllands-posten.dk
+  - jp.dk
+
+strategies:
+  - type: link_scan
+    href_must: ["/ECE\\d+"]
+    href_skip:
+      - "/abonnement"
+      - "/login"
+      - "/konto"
+      - "/shop/"
+      - "/tag/"
+      - "/plus/"
+    min_length: 16
+    title:
+      - { from: self, select: "h1, h2, h3, h4, h5", score: 9 }
+      - { from: parent, tag: article, select: "h1, h2, h3, h4, h5", score: 8 }
+      - { from: self, recipe: text, score: 5 }

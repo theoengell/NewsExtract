@@ -56,7 +56,8 @@
       "weekendavisen",
       "guardian",
       "nytimes",
-      "observer"
+      "observer",
+      "jyllandsposten"
     ],
     "show_all_new": true,
     "dim_opened": true,
@@ -91,5 +92,11 @@
     "name": "The Observer",
     "url": "https://observer.co.uk/",
     "language": "en"
+  },
+  "jyllandsposten": {
+    "enabled": true,
+    "name": "Jyllands-Posten",
+    "url": "https://jyllands-posten.dk/",
+    "language": "da"
   }
 }
