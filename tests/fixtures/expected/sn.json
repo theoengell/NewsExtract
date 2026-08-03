@@ -1,0 +1,12 @@
+[
+  {
+    "text": "Fixture headline about local Sjælland news today",
+    "score": 9,
+    "href": "https://www.sn.dk/art1/roskilde-kommune/nyheder/fixture-headline-about-local-sjaelland-news-today/"
+  },
+  {
+    "text": "Second fixture story from the priority API response",
+    "score": 9,
+    "href": "https://www.sn.dk/art2/holbaek-kommune/112/second-fixture-story/"
+  }
+]

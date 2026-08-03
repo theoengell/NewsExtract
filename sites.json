@@ -59,7 +59,8 @@
       "observer",
       "jyllandsposten",
       "borsen",
-      "fyens"
+      "fyens",
+      "sn"
     ],
     "show_all_new": true,
     "dim_opened": true,
@@ -111,6 +112,12 @@
     "enabled": true,
     "name": "Fyens Stiftstidende",
     "url": "https://fyens.dk/",
+    "language": "da"
+  },
+  "sn": {
+    "enabled": true,
+    "name": "Sjællandske Nyheder",
+    "url": "https://www.sn.dk/",
     "language": "da"
   }
 }

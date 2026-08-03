@@ -778,6 +778,198 @@
     ],
     "enabled": true
   },
+  "lejre-kommune": {
+    "label": "Lejre Kommune",
+    "color": "#c5e1a5",
+    "match": [
+      "/lejre-kommune/"
+    ],
+    "enabled": true
+  },
+  "kalundborg-kommune": {
+    "label": "Kalundborg Kommune",
+    "color": "#c5e1a5",
+    "match": [
+      "/kalundborg-kommune/"
+    ],
+    "enabled": true
+  },
+  "roskilde-kommune": {
+    "label": "Roskilde Kommune",
+    "color": "#c5e1a5",
+    "match": [
+      "/roskilde-kommune/"
+    ],
+    "enabled": true
+  },
+  "ringsted-kommune": {
+    "label": "Ringsted Kommune",
+    "color": "#c5e1a5",
+    "match": [
+      "/ringsted-kommune/"
+    ],
+    "enabled": true
+  },
+  "sjaelland": {
+    "label": "Sjaelland",
+    "color": "#c5e1a5",
+    "match": [
+      "/sjaelland/"
+    ],
+    "enabled": true
+  },
+  "slagelse-kommune": {
+    "label": "Slagelse Kommune",
+    "color": "#c5e1a5",
+    "match": [
+      "/slagelse-kommune/"
+    ],
+    "enabled": true
+  },
+  "koege-kommune": {
+    "label": "Koege Kommune",
+    "color": "#c5e1a5",
+    "match": [
+      "/koege-kommune/"
+    ],
+    "enabled": true
+  },
+  "vordingborg-kommune": {
+    "label": "Vordingborg Kommune",
+    "color": "#c5e1a5",
+    "match": [
+      "/vordingborg-kommune/"
+    ],
+    "enabled": true
+  },
+  "holbaek-kommune": {
+    "label": "Holbaek Kommune",
+    "color": "#c5e1a5",
+    "match": [
+      "/holbaek-kommune/"
+    ],
+    "enabled": true
+  },
+  "hilleroed-kommune": {
+    "label": "Hilleroed Kommune",
+    "color": "#c5e1a5",
+    "match": [
+      "/hilleroed-kommune/"
+    ],
+    "enabled": true
+  },
+  "halsnaes-kommune": {
+    "label": "Halsnaes Kommune",
+    "color": "#c5e1a5",
+    "match": [
+      "/halsnaes-kommune/"
+    ],
+    "enabled": true
+  },
+  "koebenhavn-kommune": {
+    "label": "Koebenhavn Kommune",
+    "color": "#c5e1a5",
+    "match": [
+      "/koebenhavn-kommune/"
+    ],
+    "enabled": true
+  },
+  "naestved-kommune": {
+    "label": "Naestved Kommune",
+    "color": "#c5e1a5",
+    "match": [
+      "/naestved-kommune/"
+    ],
+    "enabled": true
+  },
+  "hoeje-taastrup-kommune": {
+    "label": "Hoeje Taastrup Kommune",
+    "color": "#c5e1a5",
+    "match": [
+      "/hoeje-taastrup-kommune/"
+    ],
+    "enabled": true
+  },
+  "rudersdal-kommune": {
+    "label": "Rudersdal Kommune",
+    "color": "#c5e1a5",
+    "match": [
+      "/rudersdal-kommune/"
+    ],
+    "enabled": true
+  },
+  "ballerup-kommune": {
+    "label": "Ballerup Kommune",
+    "color": "#c5e1a5",
+    "match": [
+      "/ballerup-kommune/"
+    ],
+    "enabled": true
+  },
+  "furesoe-kommune": {
+    "label": "Furesoe Kommune",
+    "color": "#c5e1a5",
+    "match": [
+      "/furesoe-kommune/"
+    ],
+    "enabled": true
+  },
+  "odsherred-kommune": {
+    "label": "Odsherred Kommune",
+    "color": "#c5e1a5",
+    "match": [
+      "/odsherred-kommune/"
+    ],
+    "enabled": true
+  },
+  "soroe-kommune": {
+    "label": "Soroe Kommune",
+    "color": "#c5e1a5",
+    "match": [
+      "/soroe-kommune/"
+    ],
+    "enabled": true
+  },
+  "egedal-kommune": {
+    "label": "Egedal Kommune",
+    "color": "#c5e1a5",
+    "match": [
+      "/egedal-kommune/"
+    ],
+    "enabled": true
+  },
+  "broenshoej-husum": {
+    "label": "Broenshoej Husum",
+    "color": "#c5e1a5",
+    "match": [
+      "/broenshoej-husum/"
+    ],
+    "enabled": true
+  },
+  "alleroed-kommune": {
+    "label": "Alleroed Kommune",
+    "color": "#c5e1a5",
+    "match": [
+      "/alleroed-kommune/"
+    ],
+    "enabled": true
+  },
+  "helsingoer-kommune": {
+    "label": "Helsingoer Kommune",
+    "color": "#c5e1a5",
+    "match": [
+      "/helsingoer-kommune/"
+    ],
+    "enabled": true
+  },
+  "gribskov-kommune": {
+    "label": "Gribskov Kommune",
+    "color": "#c5e1a5",
+    "match": [
+      "/gribskov-kommune/"
+    ],
+    "enabled": true
+  },
   "other": {
     "label": "Other",
     "color": "#eeeeee",

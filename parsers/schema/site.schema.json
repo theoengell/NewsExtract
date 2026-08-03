@@ -29,7 +29,7 @@
       "properties": {
         "type": {
           "type": "string",
-          "enum": ["card", "link_scan", "heading_scan", "select"]
+          "enum": ["card", "link_scan", "heading_scan", "select", "cdp_priority"]
         },
         "container": { "type": "string" },
         "match": { "type": "string" },
@@ -49,6 +49,11 @@
         "soft_score": { "type": "number" },
         "score_recipe": { "type": "string" },
         "require_link": { "type": "boolean" },
+        "title_field": { "type": "string" },
+        "path_field": { "type": "string" },
+        "slug_field": { "type": "string" },
+        "img_pack": { "type": "string" },
+        "timeout": { "type": "number" },
         "tags": {
           "type": "array",
           "items": { "type": "string" }

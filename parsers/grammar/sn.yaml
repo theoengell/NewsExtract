@@ -1,0 +1,17 @@
+id: sn
+name: Sjællandske Nyheder
+language: da
+url: https://www.sn.dk/
+domains:
+  - sn.dk
+
+strategies:
+  # Front page teasers are JS-hydrated from Aptoma/CDP; queries live in data-params.
+  - type: cdp_priority
+    title_field: headline
+    path_field: path
+    slug_field: slug
+    img_pack: landing
+    min_length: 16
+    score: 9
+    timeout: 15

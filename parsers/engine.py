@@ -488,11 +488,105 @@ def _run_heading_scan(soup, strategy: dict, collector: CandidateCollector) -> No
         )
 
 
+def _decode_data_params(raw: str) -> dict | None:
+    import base64
+    import json
+
+    if not raw:
+        return None
+    pad = "=" * (-len(raw) % 4)
+    try:
+        return json.loads(base64.b64decode(raw + pad))
+    except Exception:
+        return None
+
+
+def _run_cdp_priority(soup, strategy: dict, collector: CandidateCollector) -> None:
+    """
+    Sjællandske Nyheder-style front pages: article teasers are loaded via
+    Aptoma/CDP ``{apiURL}/priority/?imgPack=landing&query=<base64 json>``.
+    Query blocks are embedded on the page as base64 ``data-params``.
+    """
+    import base64
+    import json
+
+    import requests
+
+    default_score = strategy.get("score", 9)
+    title_field = strategy.get("title_field", "headline")
+    path_field = strategy.get("path_field", "path")
+    slug_field = strategy.get("slug_field", "slug")
+    img_pack = strategy.get("img_pack", "landing")
+    timeout = float(strategy.get("timeout") or 15)
+
+    seen_queries: set[str] = set()
+    seen_ids: set = set()
+
+    for el in soup.select("[data-params]"):
+        block = _decode_data_params(el.get("data-params") or "")
+        if not block:
+            continue
+        api = (block.get("apiURL") or "").rstrip("/")
+        query = block.get("query")
+        if not api or not isinstance(query, dict):
+            continue
+        qkey = json.dumps(query, sort_keys=True, separators=(",", ":"))
+        if qkey in seen_queries:
+            continue
+        seen_queries.add(qkey)
+
+        endpoint = f"{api}/priority/"
+        q_b64 = base64.b64encode(
+            json.dumps(query, separators=(",", ":")).encode("utf-8")
+        ).decode("ascii")
+        try:
+            resp = requests.get(
+                endpoint,
+                params={"imgPack": img_pack, "query": q_b64},
+                timeout=timeout,
+                headers={
+                    "Accept": "application/json, text/plain, */*",
+                    "Origin": collector.base_url.rstrip("/"),
+                    "Referer": collector.base_url,
+                    "User-Agent": "Mozilla/5.0 NewsExtract/1.0",
+                },
+            )
+            resp.raise_for_status()
+            payload = resp.json()
+        except Exception:
+            continue
+
+        items = payload.get("data") if isinstance(payload, dict) else None
+        if not isinstance(items, list):
+            continue
+
+        for item in items:
+            if not isinstance(item, dict):
+                continue
+            item_id = item.get("id")
+            if item_id is not None:
+                if item_id in seen_ids:
+                    continue
+                seen_ids.add(item_id)
+
+            text_val = (item.get(title_field) or item.get("headline") or "").strip()
+            if not text_val or not _text_filters_ok(text_val, strategy):
+                continue
+
+            path = (item.get(path_field) or "").strip().strip("/")
+            slug = (item.get(slug_field) or "").strip().strip("/")
+            href = f"/{path}/" if path else (f"/{slug}/" if slug else None)
+            if not href:
+                continue
+            collector.add(text_val, href, default_score)
+
+
 _STRATEGY_RUNNERS = {
     "card": _run_card,
     "select": _run_select,
     "link_scan": _run_link_scan,
     "heading_scan": _run_heading_scan,
+    "cdp_priority": _run_cdp_priority,
 }
 
 
