@@ -261,7 +261,7 @@ strategies:
 1. Discover `parsers/grammar/*.yaml` (ignore `_*.yaml`).
 2. Validate against JSON Schema (`id`, `name`, `url`, `strategies[]` with known `type` / `recipe` enums).
 3. Build the same registry as today: `SITE_ID`, `DOMAINS`, `LANGUAGE`, `DEFAULT_URL`.
-4. Expose a module-like facade so `extract_headlines.py` barely changes:
+4. Expose a module-like facade so `newsextract.py` barely changes:
 
 ```python
 candidates = engine.extract(site_id, soup, base_url)
@@ -296,7 +296,7 @@ Return `collector.results()` — identical shape to today, so length filter / fu
 |---------|----------|--------|
 | Noise / glue / dedup | `base.py` | Universal; not site rules |
 | Recipe implementations | `recipes.py` | DOM walks CSS cannot express |
-| Fetch / cache / HTML build | `extract_headlines.py` | Outside parsing |
+| Fetch / cache / HTML build | `newsextract.py` | Outside parsing |
 | Escape hatch (optional) | `parsers/hooks/<id>.py` | Last resort for one-off sites |
 
 **Recommended policy:** prefer extending the grammar or adding a *named* recipe over a site hook. Hooks should be temporary and rare (target: zero for the current ten sites once Guardian ancestor walk and TeaserLink are recipes).

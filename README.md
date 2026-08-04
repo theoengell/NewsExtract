@@ -25,7 +25,7 @@ Created by **Theo Engell**.
   - Keyword **bold** highlights and **exclude** filters
   - Pagination for “Previously seen” (Previous / Next + page label)
   - Dark / light mode
-  - Settings popup; **Save for next run** downloads updated `sites.json` + `categories.json`
+  - Settings popup; **Save for next run** downloads updated `sites.json` + `settings.json` + `categories.json`
 - **CLI** summary of new/seen counts per site, optional verbose lists, text export, elapsed time
 
 ---
@@ -51,10 +51,10 @@ Optional for tests: `pip install pytest`.
 cd C:\source\repos\NewsExtract
 
 # First time / refresh from the web
-python extract_headlines.py --update
+python newsextract.py --update
 
 # Later: rebuild HTML from cache only (no network)
-python extract_headlines.py
+python newsextract.py
 ```
 
 The script writes `headlines.html` and opens it in your default browser (unless you pass `--no-html`).
@@ -65,15 +65,15 @@ The script writes `headlines.html` and opens it in your default browser (unless 
 
 | Command | What it does |
 |--------|----------------|
-| `python extract_headlines.py` | Rebuild console + HTML from cache |
-| `python extract_headlines.py --update` | Fetch enabled sites, update cache, rebuild |
-| `python extract_headlines.py --update -v` | Same, and print full headline lists |
-| `python extract_headlines.py --list-sites` | List discovered parsers and enabled flags |
-| `python extract_headlines.py --only ekstrabladet,dr` | Run only those site ids |
-| `python extract_headlines.py --no-html` | Console only (no HTML write/open) |
-| `python extract_headlines.py --limit 20 -o headlines.txt` | Cap list length; write titles to a file |
-| `python extract_headlines.py --with-links` | Print title + URL (implies verbose) |
-| `python extract_headlines.py --parser-engine both --only tv2` | Compare Python vs grammar extract |
+| `python newsextract.py` | Rebuild console + HTML from cache |
+| `python newsextract.py --update` | Fetch enabled sites, update cache, rebuild |
+| `python newsextract.py --update -v` | Same, and print full headline lists |
+| `python newsextract.py --list-sites` | List discovered parsers and enabled flags |
+| `python newsextract.py --only ekstrabladet,dr` | Run only those site ids |
+| `python newsextract.py --no-html` | Console only (no HTML write/open) |
+| `python newsextract.py --limit 20 -o headlines.txt` | Cap list length; write titles to a file |
+| `python newsextract.py --with-links` | Print title + URL (implies verbose) |
+| `python newsextract.py --parser-engine both --only tv2` | Compare Python vs grammar extract |
 
 ### Useful options
 
@@ -84,7 +84,8 @@ The script writes `headlines.html` and opens it in your default browser (unless 
 | `--html [PATH]` | HTML output path (default `headlines.html`) |
 | `--cache-file PATH` | Cache file (default `headlines_cache.json`) |
 | `--no-cache` | Don’t read/write cache (requires `--update`) |
-| `--sites-file PATH` | Site enablement / settings (default `sites.json`) |
+| `--sites-file PATH` | Site enablement (default `sites.json`) |
+| `--settings-file PATH` | Global UI settings (default `settings.json`) |
 | `--categories PATH` | Categories file (default `categories.json`) |
 
 Every run prints `Elapsed: X.XXs` on stderr when finished.
@@ -95,8 +96,9 @@ Every run prints `Elapsed: X.XXs` on stderr when finished.
 
 ```text
 C:\source\repos\NewsExtract\
-├── extract_headlines.py   # Main CLI + HTML builder
-├── sites.json             # Per-site enabled flags + _settings
+├── newsextract.py   # Main CLI + HTML builder
+├── sites.json             # Per-site enabled flags + metadata
+├── settings.json          # Global UI defaults (order, filters, theme, …)
 ├── categories.json        # Category labels, colours, URL match patterns
 ├── headlines_cache.json   # Seen hrefs + last display snapshot (created on --update)
 ├── headlines.html         # Generated dashboard
@@ -111,6 +113,7 @@ C:\source\repos\NewsExtract\
 │   └── grammar/           # One YAML file per site
 ├── tests/                 # Schema + fixture parity tests
 ├── documentation/tech/    # Design + implementation plan
+├── LICENSE                # GPL-3.0
 └── README.md
 ```
 
@@ -131,7 +134,9 @@ Each site key matches a grammar file stem (`parsers/grammar/<id>.yaml`):
 }
 ```
 
-Global UI defaults live under `_settings`, for example:
+### `settings.json`
+
+Global UI defaults, for example:
 
 | Key | Purpose |
 |-----|---------|
@@ -149,6 +154,8 @@ Global UI defaults live under `_settings`, for example:
 | `exclude_words` | Comma-separated words that hide headlines |
 
 Toggling sites/languages/filters in the HTML Settings panel updates the browser. **Save for next run** downloads JSON you can drop back into the project folder so the next script run picks them up.
+
+If `settings.json` is missing but an older `sites.json` still has a `_settings` block, that block is migrated automatically on the next run.
 
 ### `categories.json`
 
@@ -218,7 +225,7 @@ strategies:
 3. Prefer existing strategy types (`card`, `link_scan`, `heading_scan`, `select`) and recipes in `parsers/recipes.py`. Add a new named recipe only when CSS/filters are not enough.
 4. Optional: `fetch_timeout` on the grammar for a custom fetch timeout.
 5. Validate: `python -m parsers --validate` (or `python -m parsers.engine --validate`)
-6. Run `python extract_headlines.py --list-sites` — the new site should appear.
+6. Run `python newsextract.py --list-sites` — the new site should appear.
 7. Run with `--update` (and optionally `--only site_id`). Logo is fetched into `logos/` when possible.
 
 Shared helpers live in `parsers/base.py` (noise filtering, glued-headline cleanup, TeaserLink helpers, etc.). Design notes: [documentation/tech/grammar-based-parsers.md](documentation/tech/grammar-based-parsers.md). Recipe checklist: [documentation/tech/grammar-recipes.md](documentation/tech/grammar-recipes.md).
@@ -228,7 +235,7 @@ Shared helpers live in `parsers/base.py` (noise filtering, glued-headline cleanu
 ## How the pipeline works
 
 1. Discover grammars in `parsers/grammar/`
-2. Load `sites.json` / `categories.json` / cache
+2. Load `sites.json` / `settings.json` / `categories.json` / cache
 3. If `--update`: fetch each enabled front page → grammar `extract()` → length filter → fuzzy dedupe → merge by href
 4. Compare to cache → mark new vs seen → update cache
 5. Print short CLI summary (or verbose lists)
@@ -256,7 +263,10 @@ Without `--update`, step 3 is skipped and the last cached display snapshot is re
 
 ---
 
-## License / credit
+## License
 
-NewsExtract — by Theo Engell.  
+NewsExtract is free software licensed under the [GNU General Public License v3.0](https://www.gnu.org/licenses/gpl-3.0.html) (GPL-3.0). See [`LICENSE`](LICENSE) for the full text.
+
+Copyright © Theo Engell.
+
 Site content belongs to the respective publishers; this tool is a personal front-page headline extractor and reader UI.

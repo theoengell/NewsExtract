@@ -11,7 +11,7 @@ Actionable plan to deliver the design in [grammar-based-parsers.md](./grammar-ba
 1. **Parity first** — grammar extract must match Python extract on the same HTML before a site is cut over.
 2. **Ship behind a flag** — `--parser-engine=py|grammar|both` until Phase 4; default stays `py`.
 3. **Closed vocabulary** — new capability = new strategy type or named recipe, never arbitrary expressions in YAML.
-4. **Keep the pipeline contract** — `extract(soup, base_url) → [(text, score, href, pos)]` so `extract_headlines.py` post-steps stay untouched.
+4. **Keep the pipeline contract** — `extract(soup, base_url) → [(text, score, href, pos)]` so `newsextract.py` post-steps stay untouched.
 5. **One site at a time** — migrate in ease order; delete Python only after that site’s fixtures pass under `grammar`.
 
 ---
@@ -54,12 +54,12 @@ Dependency: add `PyYAML` (or use JSON-only grammars to avoid it — prefer YAML 
 | 0.2 | Add `parsers/engine.py`: `load_site(path)`, `load_all()`, `extract(site, soup, base_url)` | Raises clear errors with site id + field path |
 | 0.3 | Implement strategy `card` (container / title / link / link_fallback / score / optional filters) | TV2-shaped grammar produces candidates |
 | 0.4 | Add `parsers/recipes.py` with `text` only; registry dict `RECIPES` | Unknown recipe name fails at load |
-| 0.5 | Wire `--parser-engine {py,grammar,both}` in `extract_headlines.py` (default `py`) | `both` runs both, logs diff summary to stderr, uses `py` result for output |
+| 0.5 | Wire `--parser-engine {py,grammar,both}` in `newsextract.py` (default `py`) | `both` runs both, logs diff summary to stderr, uses `py` result for output |
 | 0.6 | Extend `parsers/__init__.py` so grammar sites are discoverable *alongside* Python when engine is `grammar`/`both` | `--list-sites` still works; Python modules remain source of truth for registry until Phase 4 |
 | 0.7 | Add `PyYAML` to README install line (and optional `jsonschema` for validation) | Documented install works |
 | 0.8 | Create `tests/` skeleton + one TV2 HTML fixture (from cache or a saved fetch) | `pytest` (or `python -m unittest`) runs |
 
-**Exit criteria:** `python extract_headlines.py --parser-engine=both --only tv2 --update` runs without error; `both` prints zero critical diffs once TV2 grammar exists (Phase 1).
+**Exit criteria:** `python newsextract.py --parser-engine=both --only tv2 --update` runs without error; `both` prints zero critical diffs once TV2 grammar exists (Phase 1).
 
 ---
 
@@ -125,7 +125,7 @@ Dependency: add `PyYAML` (or use JSON-only grammars to avoid it — prefer YAML 
 | 4.6 | Update README “Adding a site parser” → add YAML + recipe allowlist note | Docs match reality |
 | 4.7 | Link this plan + design doc from README (short “Architecture” bullet) | Discoverable |
 
-**Exit criteria:** Fresh clone, `pip install … pyyaml`, `python extract_headlines.py --update` works using grammars only.
+**Exit criteria:** Fresh clone, `pip install … pyyaml`, `python newsextract.py --update` works using grammars only.
 
 ---
 
@@ -183,7 +183,7 @@ Omit `pos` from equality (or compare separately); compare on normalized text + h
 
 ```bash
 pytest tests/test_schema.py tests/test_grammar_parity.py
-python extract_headlines.py --parser-engine=both --only tv2
+python newsextract.py --parser-engine=both --only tv2
 python -m parsers.engine --validate
 ```
 
@@ -193,7 +193,7 @@ python -m parsers.engine --validate
 
 | File | Change |
 |------|--------|
-| `extract_headlines.py` | Flag; call `engine.extract` vs `mod.extract`; `both` diff helper |
+| `newsextract.py` | Flag; call `engine.extract` vs `mod.extract`; `both` diff helper |
 | `parsers/__init__.py` | Dual discovery → grammar-only discovery |
 | `parsers/base.py` | Keep collector; TeaserLink helper may move behind recipe |
 | `README.md` | Install deps; add-site docs |

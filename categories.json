@@ -986,6 +986,14 @@
     ],
     "enabled": true
   },
+  "play": {
+    "label": "Play",
+    "color": "#c5e1a5",
+    "match": [
+      "/play/"
+    ],
+    "enabled": true
+  },
   "other": {
     "label": "Other",
     "color": "#eeeeee",

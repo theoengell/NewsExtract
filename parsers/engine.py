@@ -605,7 +605,7 @@ def extract(site: dict, soup, base_url: str):
 
 
 class GrammarSite:
-    """Module-like facade so extract_headlines can treat grammars like parsers."""
+    """Module-like facade so newsextract can treat grammars like parsers."""
 
     def __init__(self, data: dict):
         self._data = data

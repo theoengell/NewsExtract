@@ -1,24 +1,24 @@
 #!/usr/bin/env python3
 """
-extract_headlines.py
+newsextract.py
 
 Discovers site parsers in the parsers/ folder. By default rebuilds the HTML
 dashboard from the local cache (no network). Pass --update to fetch each
 enabled site's front page and refresh the cache.
 
-No URL arguments needed - add a new site by dropping parsers/<id>.py with
-NAME, DEFAULT_URL, and extract(). Toggle sites in sites.json and categories in
-categories.json (or on the HTML page). Unmatched URL sections are auto-added
-to categories.json on each run.
+No URL arguments needed - add a grammar under parsers/grammar/. Toggle sites in
+sites.json, UI defaults in settings.json, and categories in categories.json
+(or on the HTML page). Unmatched URL sections are auto-added to categories.json
+on each run.
 
 Usage:
-    python extract_headlines.py
-    python extract_headlines.py --update
-    python extract_headlines.py --update -v
-    python extract_headlines.py --list-sites
-    python extract_headlines.py --limit 20 -o headlines.txt
-    python extract_headlines.py --no-html
-    python extract_headlines.py --only ekstrabladet,dr
+    python newsextract.py
+    python newsextract.py --update
+    python newsextract.py --update -v
+    python newsextract.py --list-sites
+    python newsextract.py --limit 20 -o headlines.txt
+    python newsextract.py --no-html
+    python newsextract.py --only ekstrabladet,dr
 
 Install dependencies first:
     pip install requests beautifulsoup4 --break-system-packages
@@ -56,8 +56,26 @@ DEFAULT_CACHE_FILE = "headlines_cache.json"
 DEFAULT_CATEGORIES_FILE = "categories.json"
 LEGACY_COLOR_MAP_FILE = "url_colors.json"
 DEFAULT_SITES_FILE = "sites.json"
+DEFAULT_SETTINGS_FILE = "settings.json"
 DEFAULT_HTML_FILE = "headlines.html"
 DEFAULT_LOGOS_DIR = "logos"
+
+
+def make_default_settings():
+    return {
+        "show_external": True,
+        "only_new": False,
+        "bg_strength": 35,
+        "seen_limit": 15,
+        "highlight_words": "",
+        "exclude_words": "",
+        "site_order": [],
+        "show_all_new": True,
+        "dim_opened": True,
+        "show_opened_today": True,
+        "dark_mode": False,
+        "languages": {"da": True, "en": True},
+    }
 
 # id -> {label, color, match: [url substrings], enabled}
 DEFAULT_CATEGORIES = {
@@ -725,6 +743,7 @@ def load_sites_config(path, parsers):
     Load/create sites.json. Keys are SITE_ID; each value has at least
     {"enabled": bool}. Unknown ids from old configs are kept but ignored
     at run time; newly discovered parsers are added as enabled=True.
+    Legacy ``_settings`` keys are stripped (moved to settings.json).
     """
     config = {}
     if os.path.exists(path):
@@ -740,60 +759,9 @@ def load_sites_config(path, parsers):
 
     changed = False
 
-    settings = config.get("_settings")
-    if not isinstance(settings, dict):
-        config["_settings"] = {
-            "show_external": True,
-            "only_new": False,
-            "bg_strength": 35,
-            "seen_limit": 15,
-            "highlight_words": "",
-            "exclude_words": "",
-            "site_order": [],
-            "show_all_new": True,
-            "dim_opened": True,
-            "show_opened_today": True,
-            "dark_mode": False,
-            "languages": {"da": True, "en": True},
-        }
+    if "_settings" in config:
+        del config["_settings"]
         changed = True
-    else:
-        if "show_external" not in settings:
-            settings["show_external"] = True
-            changed = True
-        if "only_new" not in settings:
-            settings["only_new"] = False
-            changed = True
-        if "bg_strength" not in settings:
-            settings["bg_strength"] = 35
-            changed = True
-        if "seen_limit" not in settings:
-            settings["seen_limit"] = 15
-            changed = True
-        if "highlight_words" not in settings:
-            settings["highlight_words"] = ""
-            changed = True
-        if "exclude_words" not in settings:
-            settings["exclude_words"] = ""
-            changed = True
-        if "site_order" not in settings or not isinstance(settings.get("site_order"), list):
-            settings["site_order"] = []
-            changed = True
-        if "show_all_new" not in settings:
-            settings["show_all_new"] = True
-            changed = True
-        if "dim_opened" not in settings:
-            settings["dim_opened"] = True
-            changed = True
-        if "show_opened_today" not in settings:
-            settings["show_opened_today"] = True
-            changed = True
-        if "dark_mode" not in settings:
-            settings["dark_mode"] = False
-            changed = True
-        if "languages" not in settings or not isinstance(settings.get("languages"), dict):
-            settings["languages"] = {"da": True, "en": True}
-            changed = True
 
     for mod in parsers:
         lang = str(getattr(mod, "LANGUAGE", "da") or "da").strip().lower() or "da"
@@ -821,8 +789,77 @@ def load_sites_config(path, parsers):
                 entry["enabled"] = True
                 changed = True
 
+    if changed or not os.path.exists(path):
+        save_sites_config(path, config)
+        print(f"Updated {path} from discovered parsers.", file=sys.stderr)
+
+    return config
+
+
+def save_sites_config(path, config):
+    try:
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(config, f, indent=2, ensure_ascii=False)
+            f.write("\n")
+    except OSError as e:
+        print(f"Warning: couldn't write {path} ({e}).", file=sys.stderr)
+
+
+def _read_legacy_settings_from_sites(sites_path):
+    """Return sites.json ``_settings`` if present (pre-settings.json layouts)."""
+    if not sites_path or not os.path.exists(sites_path):
+        return None
+    try:
+        with open(sites_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        if isinstance(data, dict) and isinstance(data.get("_settings"), dict):
+            return data["_settings"]
+    except (json.JSONDecodeError, OSError):
+        pass
+    return None
+
+
+def load_settings_config(path, parsers, sites_path=None):
+    """
+    Load/create settings.json (global UI defaults). If missing, migrate from
+    a legacy ``_settings`` block in sites.json when present.
+    """
+    settings = None
+    changed = False
+
+    if os.path.exists(path):
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            if isinstance(data, dict):
+                settings = data
+            else:
+                print(f"Warning: {path} isn't a JSON object, recreating.", file=sys.stderr)
+        except (json.JSONDecodeError, OSError) as e:
+            print(f"Warning: couldn't read {path} ({e}), recreating.", file=sys.stderr)
+
+    if settings is None:
+        legacy = _read_legacy_settings_from_sites(sites_path)
+        if isinstance(legacy, dict):
+            settings = dict(legacy)
+            print(f"Migrated settings from {sites_path} → {path}.", file=sys.stderr)
+        else:
+            settings = make_default_settings()
+        changed = True
+
+    defaults = make_default_settings()
+    for key, value in defaults.items():
+        if key not in settings:
+            settings[key] = value
+            changed = True
+    if not isinstance(settings.get("site_order"), list):
+        settings["site_order"] = []
+        changed = True
+    if not isinstance(settings.get("languages"), dict):
+        settings["languages"] = dict(defaults["languages"])
+        changed = True
+
     parser_ids = [mod.SITE_ID for mod in parsers]
-    settings = config["_settings"]
     normalized_order = normalize_site_order(settings.get("site_order"), parser_ids)
     if settings.get("site_order") != normalized_order:
         settings["site_order"] = normalized_order
@@ -838,13 +875,13 @@ def load_sites_config(path, parsers):
         changed = True
 
     if changed or not os.path.exists(path):
-        save_sites_config(path, config)
-        print(f"Updated {path} from discovered parsers.", file=sys.stderr)
+        save_settings_config(path, settings)
+        print(f"Updated {path}.", file=sys.stderr)
 
-    return config
+    return settings
 
 
-def save_sites_config(path, config):
+def save_settings_config(path, config):
     try:
         with open(path, "w", encoding="utf-8") as f:
             json.dump(config, f, indent=2, ensure_ascii=False)
@@ -1400,13 +1437,14 @@ def _render_all_new_section(
   </section>"""
 
 
-def build_combined_html(site_blocks, categories, sites_config, site_domains):
+def build_combined_html(site_blocks, categories, sites_config, settings, site_domains):
     """
     site_blocks: list of dicts with keys:
       site_id, name, url, new_results, seen_results, is_first_run, error (optional)
     site_domains: site_id -> iterable of allowed hostnames
     """
-    settings = sites_config.get("_settings") if isinstance(sites_config.get("_settings"), dict) else {}
+    if not isinstance(settings, dict):
+        settings = {}
     show_external = bool(settings.get("show_external", True))
     only_new = bool(settings.get("only_new", False))
     show_all_new = bool(settings.get("show_all_new", True))
@@ -1621,6 +1659,7 @@ def build_combined_html(site_blocks, categories, sites_config, site_domains):
         body_classes.append("dark")
     body_class_attr = f' class="{" ".join(body_classes)}"' if body_classes else ""
     sites_json_literal = json.dumps(sites_config, ensure_ascii=False)
+    settings_json_literal = json.dumps(settings, ensure_ascii=False)
     categories_json_literal = json.dumps(categories, ensure_ascii=False)
     initial_sites_literal = json.dumps(initial_sites)
     initial_cats_literal = json.dumps(initial_cats)
@@ -2317,7 +2356,7 @@ def build_combined_html(site_blocks, categories, sites_config, site_domains):
         <button type="button" id="btn-clear-storage">Clear all cookies &amp; saved settings</button>
         <span class="status" id="status"></span>
       </div>
-      <p class="hint">Downloads updated <code>sites.json</code> and <code>categories.json</code>.
+      <p class="hint">Downloads updated <code>sites.json</code>, <code>settings.json</code>, and <code>categories.json</code>.
         Replace those files in the NewsExtract folder to apply on the next script run.
         “Clear all…” removes NewsExtract data stored in this browser (localStorage / cookies).</p>
     </div>
@@ -2341,6 +2380,7 @@ def build_combined_html(site_blocks, categories, sites_config, site_domains):
   const OPENED_LINKS_KEY = "newsextract.openedLinks";
   const COLLAPSED_KEY = "newsextract.collapsedSites";
   const sitesConfig = {sites_json_literal};
+  const settingsConfig = {settings_json_literal};
   const categoriesConfig = {categories_json_literal};
   const initialSites = {initial_sites_literal};
   const initialCats = {initial_cats_literal};
@@ -3265,19 +3305,21 @@ def build_combined_html(site_blocks, categories, sites_config, site_domains):
       if (!nextSites[id] || typeof nextSites[id] !== "object") nextSites[id] = {{}};
       nextSites[id].enabled = siteState[id] !== false;
     }});
-    if (!nextSites._settings || typeof nextSites._settings !== "object") nextSites._settings = {{}};
-    nextSites._settings.show_external = showExternal;
-    nextSites._settings.only_new = onlyNew;
-    nextSites._settings.bg_strength = bgStrength;
-    nextSites._settings.seen_limit = seenLimit;
-    nextSites._settings.highlight_words = highlightWords;
-    nextSites._settings.exclude_words = excludeWords;
-    nextSites._settings.site_order = siteOrder;
-    nextSites._settings.show_all_new = showAllNew;
-    nextSites._settings.dim_opened = dimOpened;
-    nextSites._settings.show_opened_today = showOpenedToday;
-    nextSites._settings.dark_mode = darkMode;
-    nextSites._settings.languages = languages;
+    delete nextSites._settings;
+
+    const nextSettings = JSON.parse(JSON.stringify(settingsConfig || {{}}));
+    nextSettings.show_external = showExternal;
+    nextSettings.only_new = onlyNew;
+    nextSettings.bg_strength = bgStrength;
+    nextSettings.seen_limit = seenLimit;
+    nextSettings.highlight_words = highlightWords;
+    nextSettings.exclude_words = excludeWords;
+    nextSettings.site_order = siteOrder;
+    nextSettings.show_all_new = showAllNew;
+    nextSettings.dim_opened = dimOpened;
+    nextSettings.show_opened_today = showOpenedToday;
+    nextSettings.dark_mode = darkMode;
+    nextSettings.languages = languages;
 
     const nextCats = JSON.parse(JSON.stringify(categoriesConfig));
     Object.keys(catState).forEach(function (id) {{
@@ -3287,9 +3329,12 @@ def build_combined_html(site_blocks, categories, sites_config, site_domains):
 
     downloadJson("sites.json", nextSites);
     setTimeout(function () {{
-      downloadJson("categories.json", nextCats);
-      setStatus("Downloaded sites.json + categories.json — replace project files for next run");
+      downloadJson("settings.json", nextSettings);
     }}, 400);
+    setTimeout(function () {{
+      downloadJson("categories.json", nextCats);
+      setStatus("Downloaded sites.json + settings.json + categories.json — replace project files for next run");
+    }}, 800);
   }});
 }})();
 </script>
@@ -3363,6 +3408,11 @@ def main():
         help=f"Per-site enabled flags (default: {DEFAULT_SITES_FILE})",
     )
     parser.add_argument(
+        "--settings-file",
+        default=DEFAULT_SETTINGS_FILE,
+        help=f"Global UI settings (default: {DEFAULT_SETTINGS_FILE})",
+    )
+    parser.add_argument(
         "--parser-engine",
         choices=("py", "grammar", "both"),
         default=_DEFAULT_PARSER_ENGINE,
@@ -3383,6 +3433,9 @@ def main():
         )
         sys.exit(1)
 
+    settings = load_settings_config(
+        args.settings_file, parsers, sites_path=args.sites_file
+    )
     sites_config = load_sites_config(args.sites_file, parsers)
     categories = load_categories(args.categories)
 
@@ -3404,7 +3457,6 @@ def main():
                 sys.exit(1)
 
     to_run = []
-    settings = sites_config.get("_settings") if isinstance(sites_config.get("_settings"), dict) else {}
     languages = normalize_languages(
         settings.get("languages"),
         [str(getattr(m, "LANGUAGE", "da") or "da").strip().lower() or "da" for m in parsers],
@@ -3613,7 +3665,9 @@ def main():
             mod.SITE_ID: tuple(getattr(mod, "DOMAINS", ()) or ())
             for mod in parsers
         }
-        page = build_combined_html(site_blocks, categories, sites_config, site_domains)
+        page = build_combined_html(
+            site_blocks, categories, sites_config, settings, site_domains
+        )
         out_path = args.html or DEFAULT_HTML_FILE
         with open(out_path, "w", encoding="utf-8") as f:
             f.write(page)

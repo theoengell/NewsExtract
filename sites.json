@@ -40,40 +40,6 @@
     "url": "https://www.b.dk/",
     "language": "da"
   },
-  "_settings": {
-    "show_external": true,
-    "only_new": false,
-    "bg_strength": 35,
-    "seen_limit": 15,
-    "highlight_words": "",
-    "site_order": [
-      "berlingske",
-      "bt",
-      "dr",
-      "ekstrabladet",
-      "politiken",
-      "tv2",
-      "weekendavisen",
-      "guardian",
-      "nytimes",
-      "observer",
-      "jyllandsposten",
-      "borsen",
-      "fyens",
-      "sn",
-      "newz",
-      "slashdot"
-    ],
-    "show_all_new": true,
-    "dim_opened": true,
-    "show_opened_today": true,
-    "dark_mode": false,
-    "languages": {
-      "da": true,
-      "en": true
-    },
-    "exclude_words": ""
-  },
   "weekendavisen": {
     "enabled": true,
     "name": "Weekendavisen",
