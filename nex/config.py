@@ -16,6 +16,12 @@ from .constants import (
     make_default_settings,
 )
 
+
+def _ensure_parent_dir(path):
+    parent = os.path.dirname(path or "")
+    if parent:
+        os.makedirs(parent, exist_ok=True)
+
 def _normalize_category_entry(cat_id, raw, fallback=None):
     """Coerce a category entry into {label, color, match, enabled}."""
     fb = fallback or DEFAULT_CATEGORIES.get(cat_id, {})
@@ -108,6 +114,7 @@ def load_categories(path):
 
 def save_categories(path, categories):
     try:
+        _ensure_parent_dir(path)
         with open(path, "w", encoding="utf-8") as f:
             json.dump(categories, f, indent=2, ensure_ascii=False)
             f.write("\n")
@@ -385,6 +392,7 @@ def load_sites_config(path, parsers):
 
 def save_sites_config(path, config):
     try:
+        _ensure_parent_dir(path)
         with open(path, "w", encoding="utf-8") as f:
             json.dump(config, f, indent=2, ensure_ascii=False)
             f.write("\n")
@@ -470,6 +478,7 @@ def load_settings_config(path, parsers, sites_path=None):
 
 def save_settings_config(path, config):
     try:
+        _ensure_parent_dir(path)
         with open(path, "w", encoding="utf-8") as f:
             json.dump(config, f, indent=2, ensure_ascii=False)
             f.write("\n")

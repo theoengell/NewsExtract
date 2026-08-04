@@ -1,5 +1,5 @@
 # Runtime headline cache (new/seen history)
-headlines_cache.json
+config/headlines_cache.json
 
 # Generated dashboard
 headlines.html

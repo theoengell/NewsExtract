@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-sitetoggle.py — turn news sites on/off in sites.json.
+sitetoggle.py — turn news sites on/off in config/sites.json.
 
 Usage:
     python sitetoggle.py              # interactive list + toggle

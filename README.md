@@ -12,7 +12,7 @@ Created by **Theo Engell**.
 
 - **Multi-site parsers** — Berlingske, BT, Børsen, DR, Ekstra Bladet, Fyens Stiftstidende, Jyllands-Posten, Newz, Politiken, Sjællandske Nyheder, Slashdot, TV 2 Nyheder, Weekendavisen, The Guardian, The New York Times, The Observer (YAML grammars under `parsers/grammar/`)
 - **Grammar engine** — one interpreter for all sites; see [documentation/tech/grammar-based-parsers.md](documentation/tech/grammar-based-parsers.md)
-- **Cache-first** — default run rebuilds the dashboard from `headlines_cache.json` with no network; use `--update` to fetch fresh pages
+- **Cache-first** — default run rebuilds the dashboard from `config/headlines_cache.json` with no network; use `--update` to fetch fresh pages
 - **New vs previously seen** — compares against the cache so you can scan what’s changed since last update
 - **HTML dashboard** (`headlines.html`) with:
   - Per-site sections (logo + title; click to collapse/expand)
@@ -75,7 +75,7 @@ The script writes `headlines.html` and opens it in your default browser (unless 
 | `python newsextract.py --with-links` | Print title + URL (implies verbose) |
 | `python newsextract.py --clean` | Remove cache, HTML, and downloaded site logos |
 | `python newsextract.py --check-update` | Check for newer version on GitHub and exit |
-| `python sitetoggle.py` | Interactive on/off for sites in `sites.json` |
+| `python sitetoggle.py` | Interactive on/off for sites in `config/sites.json` |
 | `python sitetoggle.py bt dr` | Toggle those site ids |
 | `python sitetoggle.py on guardian` | Enable a site |
 | `python sitetoggle.py off bt` | Disable a site |
@@ -88,14 +88,14 @@ The script writes `headlines.html` and opens it in your default browser (unless 
 | `--parser-engine` | `py` (default), `grammar`, or `both` (parity check; uses py output) |
 | `--min-len` / `--max-len` | Headline length filter (defaults 8 / 200) |
 | `--html [PATH]` | HTML output path (default `headlines.html`) |
-| `--cache-file PATH` | Cache file (default `headlines_cache.json`) |
+| `--cache-file PATH` | Cache file (default `config/headlines_cache.json`) |
 | `--no-cache` | Don’t read/write cache (requires `--update`) |
 | `--clean` | Remove cache, generated HTML, and downloaded publisher logos (then exit) |
 | `--check-update` | Check remote version manifest and exit |
 | `--no-update-check` | Skip automatic update check on startup |
-| `--sites-file PATH` | Site enablement (default `sites.json`) |
-| `--settings-file PATH` | Global UI settings (default `settings.json`) |
-| `--categories PATH` | Categories file (default `categories.json`) |
+| `--sites-file PATH` | Site enablement (default `config/sites.json`) |
+| `--settings-file PATH` | Global UI settings (default `config/settings.json`) |
+| `--categories PATH` | Categories file (default `config/categories.json`) |
 
 Every run prints `Elapsed: X.XXs` on stderr when finished.
 
@@ -106,7 +106,7 @@ Every run prints `Elapsed: X.XXs` on stderr when finished.
 ```text
 C:\source\repos\NewsExtract\
 ├── newsextract.py         # Thin CLI entry (`python newsextract.py`)
-├── sitetoggle.py          # Toggle sites on/off in sites.json
+├── sitetoggle.py          # Toggle sites on/off in config/sites.json
 ├── nex/                   # App library (fetch, config, cache, pipeline, HTML)
 │   ├── cli.py             # argparse + run orchestration
 │   ├── fetch.py           # HTTP + site logo download
@@ -116,10 +116,12 @@ C:\source\repos\NewsExtract\
 │   ├── console.py         # CLI text formatting
 │   ├── presentation.py    # HTML dashboard builder
 │   └── constants.py       # Default paths and category seeds
-├── sites.json             # Per-site enabled flags + metadata
-├── settings.json          # Global UI defaults (order, filters, theme, …)
-├── categories.json        # Category labels, colours, URL match patterns
-├── headlines_cache.json   # Seen hrefs + last display snapshot (created on --update)
+├── config/
+│   ├── sites.json         # Per-site enabled flags + metadata
+│   ├── settings.json      # Global UI defaults (order, filters, theme, …)
+│   ├── categories.json    # Category labels, colours, URL match patterns
+│   └── headlines_cache.json # Seen hrefs + last display snapshot (created on --update)
+├── version.json           # Local app version + release metadata
 ├── headlines.html         # Generated dashboard
 ├── logos/                 # Brand assets + downloaded site logos (site logos gitignored)
 │   ├── newsextract*.png   # NewsExtract brand (tracked)
@@ -142,7 +144,7 @@ C:\source\repos\NewsExtract\
 
 ## Configuration
 
-### `sites.json`
+### `config/sites.json`
 
 Each site key matches a grammar file stem (`parsers/grammar/<id>.yaml`):
 
@@ -155,7 +157,7 @@ Each site key matches a grammar file stem (`parsers/grammar/<id>.yaml`):
 }
 ```
 
-### `settings.json`
+### `config/settings.json`
 
 Global UI defaults, for example:
 
@@ -176,13 +178,13 @@ Global UI defaults, for example:
 
 Toggling sites/languages/filters in the HTML Settings panel updates the browser. **Save for next run** downloads JSON you can drop back into the project folder so the next script run picks them up.
 
-If `settings.json` is missing but an older `sites.json` still has a `_settings` block, that block is migrated automatically on the next run.
+If `config/settings.json` is missing but an older `config/sites.json` still has a `_settings` block, that block is migrated automatically on the next run.
 
-### `categories.json`
+### `config/categories.json`
 
 Categories map URL path fragments to a label and background colour. Unmatched URL sections discovered during a run can be added automatically. Enable/disable categories in Settings (A–Z).
 
-### `headlines_cache.json`
+### `config/headlines_cache.json`
 
 Created/updated by `--update`. Stores per-site href history and a `last_display` snapshot used for cache-only rebuilds.
 
@@ -223,7 +225,7 @@ Browser preferences use `localStorage` keys under the `newsextract.` prefix (sit
 
 ## Adding a site parser
 
-1. Create `parsers/grammar/<site_id>.yaml` (stem = site id in `sites.json`).
+1. Create `parsers/grammar/<site_id>.yaml` (stem = site id in `config/sites.json`).
 2. Define metadata and one or more strategies, for example:
 
 ```yaml
@@ -256,7 +258,7 @@ Shared helpers live in `parsers/base.py` (noise filtering, glued-headline cleanu
 ## How the pipeline works
 
 1. Discover grammars in `parsers/grammar/`
-2. Load `sites.json` / `settings.json` / `categories.json` / cache
+2. Load `config/sites.json` / `config/settings.json` / `config/categories.json` / cache
 3. If `--update`: fetch each enabled front page → grammar `extract()` → length filter → fuzzy dedupe → merge by href
 4. Compare to cache → mark new vs seen → update cache
 5. Print short CLI summary (or verbose lists)

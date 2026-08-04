@@ -24,6 +24,9 @@ def load_cache(path):
 
 def save_cache(path, cache):
     try:
+        parent = os.path.dirname(path or "")
+        if parent:
+            os.makedirs(parent, exist_ok=True)
         with open(path, "w", encoding="utf-8") as f:
             json.dump(cache, f, indent=2, ensure_ascii=False)
             f.write("\n")

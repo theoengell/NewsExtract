@@ -9,7 +9,8 @@ dashboard from the local cache (no network). Pass --update to fetch each
 enabled site's front page and refresh the cache.
 
 No URL arguments needed - add a grammar under parsers/grammar/. Toggle sites in
-sites.json, UI defaults in settings.json, and categories in categories.json
+config/sites.json, UI defaults in config/settings.json, and categories in
+config/categories.json
 (or on the HTML page). Unmatched URL sections are auto-added to categories.json
 on each run.
 
