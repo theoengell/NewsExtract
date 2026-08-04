@@ -47,19 +47,19 @@
     "language": "da"
   },
   "guardian": {
-    "enabled": true,
+    "enabled": false,
     "name": "The Guardian",
     "url": "https://www.theguardian.com/international",
     "language": "en"
   },
   "nytimes": {
-    "enabled": true,
+    "enabled": false,
     "name": "The New York Times",
     "url": "https://www.nytimes.com/",
     "language": "en"
   },
   "observer": {
-    "enabled": true,
+    "enabled": false,
     "name": "The Observer",
     "url": "https://observer.co.uk/",
     "language": "en"
@@ -83,7 +83,7 @@
     "language": "da"
   },
   "sn": {
-    "enabled": true,
+    "enabled": false,
     "name": "Sjællandske Nyheder",
     "url": "https://www.sn.dk/",
     "language": "da"

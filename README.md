@@ -74,6 +74,10 @@ The script writes `headlines.html` and opens it in your default browser (unless 
 | `python newsextract.py --limit 20 -o headlines.txt` | Cap list length; write titles to a file |
 | `python newsextract.py --with-links` | Print title + URL (implies verbose) |
 | `python newsextract.py --clean` | Remove cache, HTML, and downloaded site logos |
+| `python sitetoggle.py` | Interactive on/off for sites in `sites.json` |
+| `python sitetoggle.py bt dr` | Toggle those site ids |
+| `python sitetoggle.py on guardian` | Enable a site |
+| `python sitetoggle.py off bt` | Disable a site |
 | `python newsextract.py --parser-engine both --only tv2` | Compare Python vs grammar extract |
 
 ### Useful options
@@ -99,6 +103,7 @@ Every run prints `Elapsed: X.XXs` on stderr when finished.
 ```text
 C:\source\repos\NewsExtract\
 ├── newsextract.py         # Thin CLI entry (`python newsextract.py`)
+├── sitetoggle.py          # Toggle sites on/off in sites.json
 ├── nex/                   # App library (fetch, config, cache, pipeline, HTML)
 │   ├── cli.py             # argparse + run orchestration
 │   ├── fetch.py           # HTTP + site logo download
