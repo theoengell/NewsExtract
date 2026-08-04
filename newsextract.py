@@ -288,8 +288,9 @@ def download_logo_bytes(logo_url, timeout=12, max_bytes=512_000):
 
 def ensure_site_logo(site_id, site_url, logos_dir=DEFAULT_LOGOS_DIR, page_html=None, refresh=False):
     """
-    Ensure logos/<site_id>.* exists. Returns a path relative to the HTML file
-    (e.g. 'logos/dr.png'), or None if unavailable.
+    Ensure logos/<site_id>.* exists. Reuses a local file when present unless
+    refresh=True. Returns a path relative to the HTML file (e.g. 'logos/dr.png'),
+    or None if unavailable.
     """
     os.makedirs(logos_dir, exist_ok=True)
     existing = _existing_logo_path(logos_dir, site_id)
@@ -3658,7 +3659,6 @@ def main():
                 block["url"],
                 logos_dir=DEFAULT_LOGOS_DIR,
                 page_html=page_html_by_site.get(sid),
-                refresh=bool(args.update and page_html_by_site.get(sid)),
             )
             if logo:
                 block["logo"] = logo
