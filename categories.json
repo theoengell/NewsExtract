@@ -1026,6 +1026,14 @@
     ],
     "enabled": true
   },
+  "klima": {
+    "label": "Klima",
+    "color": "#c5e1a5",
+    "match": [
+      "/klima/"
+    ],
+    "enabled": true
+  },
   "other": {
     "label": "Other",
     "color": "#eeeeee",
