@@ -186,5 +186,34 @@ def ensure_site_logo(site_id, site_url, logos_dir=DEFAULT_LOGOS_DIR, page_html=N
     if existing:
         return os.path.join(logos_dir, os.path.basename(existing)).replace("\\", "/")
     if last_error:
-        print(f"Warning: no logo for {site_id} ({last_error})", file=sys.stderr)
+            print(f"Warning: no logo for {site_id} ({last_error})", file=sys.stderr)
     return None
+
+
+def _is_brand_or_keep_logo(name):
+    """True for NewsExtract brand assets and placeholder keep files."""
+    if name in (".gitkeep", ".gitignore"):
+        return True
+    return name.startswith("newsextract.") or name.startswith("newsextract_")
+
+
+def clean_downloaded_logos(logos_dir=DEFAULT_LOGOS_DIR):
+    """
+    Remove publisher favicons from logos_dir. Keeps brand PNGs and .gitkeep.
+    Returns list of removed paths.
+    """
+    removed = []
+    if not os.path.isdir(logos_dir):
+        return removed
+    for name in list(os.listdir(logos_dir)):
+        if _is_brand_or_keep_logo(name):
+            continue
+        path = os.path.join(logos_dir, name)
+        if not os.path.isfile(path):
+            continue
+        try:
+            os.remove(path)
+            removed.append(path.replace("\\", "/"))
+        except OSError as e:
+            print(f"Warning: couldn't remove {path} ({e})", file=sys.stderr)
+    return removed

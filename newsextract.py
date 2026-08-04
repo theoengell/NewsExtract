@@ -20,6 +20,7 @@ Usage:
     python newsextract.py --list-sites
     python newsextract.py --limit 20 -o headlines.txt
     python newsextract.py --no-html
+    python newsextract.py --clean
     python newsextract.py --only ekstrabladet,dr
 
 Install dependencies first:

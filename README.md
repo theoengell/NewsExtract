@@ -73,6 +73,7 @@ The script writes `headlines.html` and opens it in your default browser (unless 
 | `python newsextract.py --no-html` | Console only (no HTML write/open) |
 | `python newsextract.py --limit 20 -o headlines.txt` | Cap list length; write titles to a file |
 | `python newsextract.py --with-links` | Print title + URL (implies verbose) |
+| `python newsextract.py --clean` | Remove cache, HTML, and downloaded site logos |
 | `python newsextract.py --parser-engine both --only tv2` | Compare Python vs grammar extract |
 
 ### Useful options
@@ -84,6 +85,7 @@ The script writes `headlines.html` and opens it in your default browser (unless 
 | `--html [PATH]` | HTML output path (default `headlines.html`) |
 | `--cache-file PATH` | Cache file (default `headlines_cache.json`) |
 | `--no-cache` | Don’t read/write cache (requires `--update`) |
+| `--clean` | Remove cache, generated HTML, and downloaded publisher logos (then exit) |
 | `--sites-file PATH` | Site enablement (default `sites.json`) |
 | `--settings-file PATH` | Global UI settings (default `settings.json`) |
 | `--categories PATH` | Categories file (default `categories.json`) |

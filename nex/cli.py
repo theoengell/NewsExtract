@@ -43,9 +43,37 @@ from .constants import (
     DEFAULT_SITES_FILE,
 )
 from .console import format_site_output
-from .fetch import ensure_site_logo
+from .fetch import clean_downloaded_logos, ensure_site_logo
 from .pipeline import extract_from_site
 from .presentation import build_combined_html
+
+
+def _remove_file(path):
+    if not path or not os.path.isfile(path):
+        return None
+    try:
+        os.remove(path)
+        return path.replace("\\", "/")
+    except OSError as e:
+        print(f"Warning: couldn't remove {path} ({e})", file=sys.stderr)
+        return None
+
+
+def run_clean(cache_file, html_file, logos_dir=DEFAULT_LOGOS_DIR):
+    """Delete cache, generated HTML, and downloaded publisher logos."""
+    removed = []
+    for path in (cache_file, html_file):
+        gone = _remove_file(path)
+        if gone:
+            removed.append(gone)
+    removed.extend(clean_downloaded_logos(logos_dir))
+    if removed:
+        for path in removed:
+            print(f"Removed {path}", file=sys.stderr)
+        print(f"Cleaned {len(removed)} file(s).", file=sys.stderr)
+    else:
+        print("Nothing to clean.", file=sys.stderr)
+    return removed
 
 def main():
     _started = time.perf_counter()
@@ -63,6 +91,12 @@ def _main():
         "--list-sites",
         action="store_true",
         help="List discovered site parsers (and enabled flag) and exit",
+    )
+    parser.add_argument(
+        "--clean",
+        action="store_true",
+        help="Remove cache, generated HTML, and downloaded publisher logos, then exit "
+             "(keeps NewsExtract brand assets and config JSON)",
     )
     parser.add_argument(
         "--only",
@@ -133,6 +167,11 @@ def _main():
     args = parser.parse_args()
     verbose = args.verbose or args.with_links
     parsers_pkg.PARSER_ENGINE = args.parser_engine
+
+    if args.clean:
+        html_path = None if args.no_html else (args.html or DEFAULT_HTML_FILE)
+        run_clean(args.cache_file, html_path, logos_dir=DEFAULT_LOGOS_DIR)
+        return
 
     refresh()
     parsers = list(PARSERS)
