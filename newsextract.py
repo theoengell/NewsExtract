@@ -15,9 +15,11 @@ on each run.
 
 Usage:
     python newsextract.py
+    python newsextract.py --check-update
     python newsextract.py --update
     python newsextract.py --update -v
     python newsextract.py --list-sites
+    python newsextract.py --no-update-check
     python newsextract.py --limit 20 -o headlines.txt
     python newsextract.py --no-html
     python newsextract.py --clean

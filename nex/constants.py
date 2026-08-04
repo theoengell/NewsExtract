@@ -7,6 +7,10 @@ DEFAULT_SITES_FILE = "sites.json"
 DEFAULT_SETTINGS_FILE = "settings.json"
 DEFAULT_HTML_FILE = "headlines.html"
 DEFAULT_LOGOS_DIR = "logos"
+APP_VERSION = "0.1.0"
+VERSION_MANIFEST_URL = "https://raw.githubusercontent.com/theoengell/NewsExtract/main/version.json"
+VERSION_CHECK_TIMEOUT = 2.5
+APP_REPO_URL = "https://github.com/theoengell/NewsExtract"
 
 def make_default_settings():
     return {

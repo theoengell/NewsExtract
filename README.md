@@ -74,6 +74,7 @@ The script writes `headlines.html` and opens it in your default browser (unless 
 | `python newsextract.py --limit 20 -o headlines.txt` | Cap list length; write titles to a file |
 | `python newsextract.py --with-links` | Print title + URL (implies verbose) |
 | `python newsextract.py --clean` | Remove cache, HTML, and downloaded site logos |
+| `python newsextract.py --check-update` | Check for newer version on GitHub and exit |
 | `python sitetoggle.py` | Interactive on/off for sites in `sites.json` |
 | `python sitetoggle.py bt dr` | Toggle those site ids |
 | `python sitetoggle.py on guardian` | Enable a site |
@@ -90,6 +91,8 @@ The script writes `headlines.html` and opens it in your default browser (unless 
 | `--cache-file PATH` | Cache file (default `headlines_cache.json`) |
 | `--no-cache` | Don’t read/write cache (requires `--update`) |
 | `--clean` | Remove cache, generated HTML, and downloaded publisher logos (then exit) |
+| `--check-update` | Check remote version manifest and exit |
+| `--no-update-check` | Skip automatic update check on startup |
 | `--sites-file PATH` | Site enablement (default `sites.json`) |
 | `--settings-file PATH` | Global UI settings (default `settings.json`) |
 | `--categories PATH` | Categories file (default `categories.json`) |

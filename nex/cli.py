@@ -8,6 +8,8 @@ import sys
 import time
 import webbrowser
 
+import requests
+
 from parsers import (
     PARSERS,
     UnsupportedSiteError,
@@ -35,6 +37,7 @@ from .config import (
     save_categories,
 )
 from .constants import (
+    APP_REPO_URL,
     DEFAULT_CACHE_FILE,
     DEFAULT_CATEGORIES_FILE,
     DEFAULT_HTML_FILE,
@@ -46,6 +49,7 @@ from .console import format_site_output
 from .fetch import clean_downloaded_logos, ensure_site_logo
 from .pipeline import extract_from_site
 from .presentation import build_combined_html
+from .update_check import check_for_update
 
 
 def _remove_file(path):
@@ -97,6 +101,16 @@ def _main():
         action="store_true",
         help="Remove cache, generated HTML, and downloaded publisher logos, then exit "
              "(keeps NewsExtract brand assets and config JSON)",
+    )
+    parser.add_argument(
+        "--check-update",
+        action="store_true",
+        help="Check remote version manifest and exit",
+    )
+    parser.add_argument(
+        "--no-update-check",
+        action="store_true",
+        help="Skip automatic update check on startup",
     )
     parser.add_argument(
         "--only",
@@ -172,6 +186,20 @@ def _main():
         html_path = None if args.no_html else (args.html or DEFAULT_HTML_FILE)
         run_clean(args.cache_file, html_path, logos_dir=DEFAULT_LOGOS_DIR)
         return
+
+    should_check_update = args.check_update or not args.no_update_check
+    update_notice = None
+    if should_check_update:
+        status, message, remote_version, notes_url = check_for_update()
+        if status == "update_available" or args.check_update or args.verbose:
+            print(message, file=sys.stderr)
+        if status == "update_available":
+            update_notice = {
+                "message": f"New version available: v{remote_version}",
+                "url": notes_url or APP_REPO_URL,
+            }
+        if args.check_update:
+            return
 
     refresh()
     parsers = list(PARSERS)
@@ -415,7 +443,7 @@ def _main():
             for mod in parsers
         }
         page = build_combined_html(
-            site_blocks, categories, sites_config, settings, site_domains
+            site_blocks, categories, sites_config, settings, site_domains, update_notice=update_notice
         )
         out_path = args.html or DEFAULT_HTML_FILE
         with open(out_path, "w", encoding="utf-8") as f:

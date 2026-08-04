@@ -18,7 +18,7 @@ from .config import (
     normalize_site_order,
     site_language,
 )
-from .constants import KNOWN_LANGUAGES
+from .constants import APP_VERSION, KNOWN_LANGUAGES
 
 def is_external_href(href, base_url, allowed_domains=None):
     """
@@ -385,7 +385,7 @@ def _render_all_new_section(
   </section>"""
 
 
-def build_combined_html(site_blocks, categories, sites_config, settings, site_domains):
+def build_combined_html(site_blocks, categories, sites_config, settings, site_domains, update_notice=None):
     """
     site_blocks: list of dicts with keys:
       site_id, name, url, new_results, seen_results, is_first_run, error (optional)
@@ -740,6 +740,26 @@ def build_combined_html(site_blocks, categories, sites_config, settings, site_do
     font-weight: 700;
     margin: 0;
     letter-spacing: 0.02em;
+  }}
+  .page-header h1 .brand-version {{
+    font-size: 0.62rem;
+    font-weight: 400;
+    color: #808080;
+    opacity: 0.5;
+    margin-left: 0.45em;
+    vertical-align: baseline;
+    display: inline-block;
+    line-height: 1;
+    white-space: nowrap;
+  }}
+  .page-header h1 .version-update-link {{
+    margin-left: 0.5em;
+    font-size: 0.6rem;
+    font-weight: 400;
+    color: #808080;
+    opacity: 0.5;
+    text-decoration: underline;
+    white-space: nowrap;
   }}
   .header-actions {{
     display: flex;
@@ -1211,7 +1231,7 @@ def build_combined_html(site_blocks, categories, sites_config, settings, site_do
   <div class="page-header">
     <div class="brand">
       <img class="brand-logo" src="logos/newsextract_256.png" alt="" width="48" height="48">
-      <h1>NewsExtract</h1>
+      <h1>NewsExtract <span class="brand-version">v{html.escape(APP_VERSION)}</span>{(f' <a class="version-update-link" href="{html.escape(update_notice.get("url", ""), quote=True)}" target="_blank" rel="noopener noreferrer">{html.escape(update_notice.get("message", "New version available"))}</a>' if isinstance(update_notice, dict) and update_notice.get("url") else "")}</h1>
     </div>
     <div class="header-actions">
       <button type="button" class="btn-theme" id="btn-theme" aria-pressed="{str(dark_mode).lower()}" title="Toggle dark / light mode">{("Light" if dark_mode else "Dark")}</button>
