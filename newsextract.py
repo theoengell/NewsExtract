@@ -3340,7 +3340,7 @@ def build_combined_html(site_blocks, categories, sites_config, settings, site_do
   }});
 }})();
 </script>
-  <footer class="page-footer">NewsExtract - by Theo Engell, only front pages are read, cookies are used to store your preferences</footer>
+  <footer class="page-footer">NewsExtract - by Theo Engell, only front pages are read, cookies are used to store your preferences - released under GPL3</footer>
 </body>
 </html>
 """

@@ -994,6 +994,38 @@
     ],
     "enabled": true
   },
+  "style": {
+    "label": "Style",
+    "color": "#c5e1a5",
+    "match": [
+      "/style/"
+    ],
+    "enabled": true
+  },
+  "import": {
+    "label": "Import",
+    "color": "#c5e1a5",
+    "match": [
+      "/import/"
+    ],
+    "enabled": true
+  },
+  "dagligvarer": {
+    "label": "Dagligvarer",
+    "color": "#c5e1a5",
+    "match": [
+      "/dagligvarer/"
+    ],
+    "enabled": true
+  },
+  "travel": {
+    "label": "Travel",
+    "color": "#c5e1a5",
+    "match": [
+      "/travel/"
+    ],
+    "enabled": true
+  },
   "other": {
     "label": "Other",
     "color": "#eeeeee",
