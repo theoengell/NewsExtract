@@ -96,7 +96,16 @@ Every run prints `Elapsed: X.XXs` on stderr when finished.
 
 ```text
 C:\source\repos\NewsExtract\
-├── newsextract.py   # Main CLI + HTML builder
+├── newsextract.py         # Thin CLI entry (`python newsextract.py`)
+├── nex/                   # App library (fetch, config, cache, pipeline, HTML)
+│   ├── cli.py             # argparse + run orchestration
+│   ├── fetch.py           # HTTP + site logo download
+│   ├── config.py          # sites / settings / categories I/O
+│   ├── cache.py           # headline cache + new/seen split
+│   ├── pipeline.py        # extract → filter → dedupe → merge
+│   ├── console.py         # CLI text formatting
+│   ├── presentation.py    # HTML dashboard builder
+│   └── constants.py       # Default paths and category seeds
 ├── sites.json             # Per-site enabled flags + metadata
 ├── settings.json          # Global UI defaults (order, filters, theme, …)
 ├── categories.json        # Category labels, colours, URL match patterns
