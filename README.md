@@ -102,7 +102,9 @@ C:\source\repos\NewsExtract\
 ├── categories.json        # Category labels, colours, URL match patterns
 ├── headlines_cache.json   # Seen hrefs + last display snapshot (created on --update)
 ├── headlines.html         # Generated dashboard
-├── logos/                 # Site logos + NewsExtract brand assets
+├── logos/                 # Brand assets + downloaded site logos (site logos gitignored)
+│   ├── newsextract*.png   # NewsExtract brand (tracked)
+│   └── <site_id>.*        # Publisher favicons (downloaded on demand)
 ├── fonts/                 # Bundled Lato fonts
 ├── parsers/
 │   ├── __init__.py        # Discovers grammar sites
@@ -226,7 +228,7 @@ strategies:
 4. Optional: `fetch_timeout` on the grammar for a custom fetch timeout.
 5. Validate: `python -m parsers --validate` (or `python -m parsers.engine --validate`)
 6. Run `python newsextract.py --list-sites` — the new site should appear.
-7. Run with `--update` (and optionally `--only site_id`). Logo is fetched into `logos/` when possible.
+7. Run with `--update` (and optionally `--only site_id`). Missing site logos are downloaded into `logos/` on the next HTML build (publisher icons are not committed to git).
 
 Shared helpers live in `parsers/base.py` (noise filtering, glued-headline cleanup, TeaserLink helpers, etc.). Design notes: [documentation/tech/grammar-based-parsers.md](documentation/tech/grammar-based-parsers.md). Recipe checklist: [documentation/tech/grammar-recipes.md](documentation/tech/grammar-recipes.md).
 
@@ -239,7 +241,7 @@ Shared helpers live in `parsers/base.py` (noise filtering, glued-headline cleanu
 3. If `--update`: fetch each enabled front page → grammar `extract()` → length filter → fuzzy dedupe → merge by href
 4. Compare to cache → mark new vs seen → update cache
 5. Print short CLI summary (or verbose lists)
-6. Build `headlines.html` and open it (unless `--no-html`)
+6. Ensure site logos under `logos/` (download favicon if missing) → build `headlines.html` and open it (unless `--no-html`)
 
 Without `--update`, step 3 is skipped and the last cached display snapshot is reused.
 
@@ -250,7 +252,8 @@ Without `--update`, step 3 is skipped and the last cached display snapshot is re
 - **Only front pages** of configured sites are fetched (no article body scrape in the default flow).
 - Preferences and opened-link history live in your browser (`localStorage` / cookies for this file origin).
 - Clearing Settings → **Clear all cookies & saved settings** removes NewsExtract browser data for the page.
-- Network access is only needed for `--update` (and first-time logo downloads).
+- Network access is only needed for `--update` and when a site logo is missing (favicon download into `logos/`).
+- Publisher logos under `logos/<site_id>.*` are local-only (gitignored). NewsExtract brand PNGs stay in the repo.
 
 ---
 

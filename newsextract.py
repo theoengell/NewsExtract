@@ -337,7 +337,9 @@ def ensure_site_logo(site_id, site_url, logos_dir=DEFAULT_LOGOS_DIR, page_html=N
             with open(tmp, "wb") as f:
                 f.write(data)
             os.replace(tmp, dest)
-            return os.path.join(logos_dir, site_id + ext).replace("\\", "/")
+            rel = os.path.join(logos_dir, site_id + ext).replace("\\", "/")
+            print(f"Downloaded logo for {site_id} → {rel}", file=sys.stderr)
+            return rel
         except (requests.RequestException, OSError, ValueError) as e:
             last_error = e
             continue

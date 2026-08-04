@@ -4,6 +4,12 @@ headlines_cache.json
 # Generated dashboard
 headlines.html
 
+# Publisher site logos (fetched by newsextract.py into logos/)
+logos/*
+!logos/.gitkeep
+!logos/newsextract.png
+!logos/newsextract_*.png
+
 # Python
 __pycache__/
 *.py[cod]
