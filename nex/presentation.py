@@ -380,7 +380,9 @@ def _render_all_new_section(
       <span class="count-inline" id="all-new-count">({count})</span>
     </h2>
     <div class="site-body" id="all-new-body">
+      <div class="site-body-inner">
 {body}
+      </div>
     </div>
   </section>"""
 
@@ -554,7 +556,9 @@ def build_combined_html(site_blocks, categories, sites_config, settings, site_do
       {new_count_html}
     </h2>
     <div class="site-body" id="{html.escape(body_id)}">
+      <div class="site-body-inner">
 {body}
+      </div>
     </div>
   </section>"""
         )
@@ -995,8 +999,26 @@ def build_combined_html(site_blocks, categories, sites_config, settings, site_do
   section.site.collapsed {{
     padding-bottom: 1em;
   }}
-  section.site.collapsed > .site-body {{ display: none; }}
   section.site.collapsed > .site-title {{ margin-bottom: 0; }}
+  .site-body {{
+    display: grid;
+    grid-template-rows: 1fr;
+    transition: grid-template-rows 0.28s ease;
+  }}
+  html:not(.collapse-ready) .site-body {{
+    transition: none;
+  }}
+  @media (prefers-reduced-motion: reduce) {{
+    .site-body {{ transition: none; }}
+  }}
+  .site-body > .site-body-inner {{
+    overflow: hidden;
+    min-height: 0;
+  }}
+  section.site.collapsed > .site-body,
+  section.all-new.collapsed > .site-body {{
+    grid-template-rows: 0fr;
+  }}
   section.all-new,
   section.opened-today {{
     background: var(--panel);
@@ -1010,7 +1032,6 @@ def build_combined_html(site_blocks, categories, sites_config, settings, site_do
   section.all-new.collapsed {{
     padding-bottom: 1em;
   }}
-  section.all-new.collapsed > .site-body {{ display: none; }}
   section.all-new.collapsed > .site-title {{ margin-bottom: 0; }}
   .count-inline {{
     color: var(--muted);
@@ -2002,6 +2023,9 @@ def build_combined_html(site_blocks, categories, sites_config, settings, site_do
   applyOpenedTodayPanel(loadBool(OPENED_TODAY_KEY, initialOpenedToday));
   applyDarkMode(loadBool(DARK_MODE_KEY, initialDarkMode));
   applyCollapsedSites(loadState(COLLAPSED_KEY, {{}}));
+  requestAnimationFrame(function () {{
+    document.documentElement.classList.add("collapse-ready");
+  }});
   (function () {{
     let map = pruneOpenedLinks(loadOpenedLinks(), 30);
     saveOpenedLinks(map);
