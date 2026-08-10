@@ -6,6 +6,8 @@ Only front pages are read. Preferences are stored in browser cookies / `localSto
 
 Created by **Theo Engell**.
 
+![NewsExtract dashboard screenshot](pics/screenshot.jpg)
+
 ---
 
 ## Features
