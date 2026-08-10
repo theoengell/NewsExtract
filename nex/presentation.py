@@ -412,6 +412,14 @@ def build_combined_html(
     show_opened_today = bool(settings.get("show_opened_today", True))
     dark_mode = bool(settings.get("dark_mode", False))
     show_clusters = bool(settings.get("show_clusters", False))
+    cluster_view = str(settings.get("cluster_view") or "list").strip().lower()
+    if cluster_view not in ("list", "graph"):
+        cluster_view = "list"
+    try:
+        cluster_min_size = int(settings.get("cluster_min_size", 2))
+    except (TypeError, ValueError):
+        cluster_min_size = 2
+    cluster_min_size = max(1, min(10, cluster_min_size))
     ignore_by_lang = load_cluster_ignore_words(
         cluster_ignore_path or DEFAULT_CLUSTER_IGNORE_FILE
     )
@@ -599,16 +607,44 @@ def build_combined_html(
         exclude_keywords=exclude_keywords,
     )
     clusters_hidden = "" if show_clusters else " hidden"
-    clusters_section = f"""  <section class="clusters{clusters_hidden}" id="clusters" data-panel="clusters" data-collapse-id="clusters">
+    list_pressed = "true" if cluster_view == "list" else "false"
+    graph_pressed = "true" if cluster_view == "graph" else "false"
+    list_view_class = "" if cluster_view == "list" else " hidden"
+    graph_view_class = "" if cluster_view == "graph" else " hidden"
+    clusters_section = f"""  <section class="clusters{clusters_hidden}" id="clusters" data-panel="clusters" data-collapse-id="clusters" data-cluster-view="{html.escape(cluster_view)}" data-cluster-min-size="{cluster_min_size}">
     <h2 class="site-title">
       <button type="button" class="site-collapse-toggle" aria-expanded="true" aria-controls="clusters-body" title="Collapse or expand">
         <span class="site-name">Clusters</span>
       </button>
       <span class="count-inline" id="clusters-count">(0)</span>
+      <span class="cluster-min-size-control" title="Minimum articles in a cluster">
+        <span class="cluster-min-size-label">Min</span>
+        <button type="button" class="btn-cluster-step" id="btn-cluster-min-dec" aria-label="Decrease minimum cluster size">−</button>
+        <span class="cluster-min-size-value" id="cluster-min-size-value">{cluster_min_size}</span>
+        <button type="button" class="btn-cluster-step" id="btn-cluster-min-inc" aria-label="Increase minimum cluster size">+</button>
+      </span>
+      <span class="cluster-view-toggles" role="group" aria-label="Cluster presentation">
+        <button type="button" class="btn-cluster-view" id="btn-cluster-list" aria-pressed="{list_pressed}">List</button>
+        <button type="button" class="btn-cluster-view" id="btn-cluster-graph" aria-pressed="{graph_pressed}">Graph</button>
+      </span>
     </h2>
     <div class="site-body" id="clusters-body">
-      <div class="site-body-inner" id="clusters-inner">
-        <p class="empty">No shared topics among current headlines.</p>
+      <div class="site-body-inner">
+        <div id="clusters-list-view" class="clusters-list-view{list_view_class}">
+          <div id="clusters-inner">
+            <p class="empty">No shared topics among current headlines.</p>
+          </div>
+        </div>
+        <div id="clusters-graph-view" class="clusters-graph-view{graph_view_class}">
+          <canvas id="clusters-graph-canvas" width="900" height="480" aria-label="Cluster graph"></canvas>
+          <p class="sites-hint" id="clusters-graph-hint">Drag nodes to rearrange. Click a node to list its articles below.</p>
+          <div id="clusters-graph-detail" class="clusters-graph-detail">
+            <h3 class="cluster-label" id="clusters-graph-detail-title">Select a cluster</h3>
+            <ol id="clusters-graph-articles">
+              <li class="empty">Click a cluster node to see articles.</li>
+            </ol>
+          </div>
+        </div>
       </div>
     </div>
   </section>"""
@@ -662,6 +698,8 @@ def build_combined_html(
     initial_opened_today_literal = json.dumps(show_opened_today)
     initial_dark_mode_literal = json.dumps(dark_mode)
     initial_clusters_literal = json.dumps(show_clusters)
+    initial_cluster_view_literal = json.dumps(cluster_view)
+    initial_cluster_min_size_literal = json.dumps(cluster_min_size)
     initial_bg_strength_literal = json.dumps(bg_strength)
     initial_seen_limit_literal = json.dumps(seen_limit)
     initial_highlight_words_literal = json.dumps(highlight_words_raw, ensure_ascii=False)
@@ -1115,6 +1153,98 @@ def build_combined_html(
     margin: 0;
     padding: 0;
   }}
+  .cluster-view-toggles {{
+    display: inline-flex;
+    gap: 0.3em;
+    margin-left: auto;
+    flex: 0 0 auto;
+  }}
+  section.clusters > .site-title {{
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.45em 0.75em;
+  }}
+  .btn-cluster-view {{
+    font: inherit;
+    font-size: 0.78rem;
+    padding: 0.2em 0.65em;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--btn-face);
+    color: var(--text);
+    cursor: pointer;
+  }}
+  .btn-cluster-view:hover {{ background: var(--hover); }}
+  .btn-cluster-view[aria-pressed="true"] {{
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }}
+  .cluster-min-size-control {{
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25em;
+    margin-left: 0.15em;
+    font-size: 0.78rem;
+    color: var(--muted);
+  }}
+  .cluster-min-size-label {{
+    margin-right: 0.15em;
+  }}
+  .cluster-min-size-value {{
+    min-width: 1.25em;
+    text-align: center;
+    font-weight: 700;
+    color: var(--text);
+  }}
+  .btn-cluster-step {{
+    font: inherit;
+    font-size: 0.9rem;
+    line-height: 1;
+    width: 1.55em;
+    height: 1.55em;
+    padding: 0;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--btn-face);
+    color: var(--text);
+    cursor: pointer;
+  }}
+  .btn-cluster-step:hover {{ background: var(--hover); }}
+  .btn-cluster-step:disabled {{
+    opacity: 0.4;
+    cursor: default;
+  }}
+  .clusters-graph-view {{
+    margin-top: 0.25em;
+  }}
+  .clusters-graph-view.hidden,
+  .clusters-list-view.hidden {{
+    display: none;
+  }}
+  #clusters-graph-canvas {{
+    display: block;
+    width: 100%;
+    height: min(56vh, 520px);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg);
+    cursor: grab;
+    touch-action: none;
+  }}
+  #clusters-graph-canvas.is-dragging {{ cursor: grabbing; }}
+  .clusters-graph-detail {{
+    margin-top: 0.85em;
+  }}
+  .clusters-graph-detail .cluster-label {{
+    margin-bottom: 0.5em;
+  }}
+  #clusters-graph-articles {{
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }}
   .count-inline {{
     color: var(--muted);
     font-weight: 500;
@@ -1466,6 +1596,8 @@ def build_combined_html(
   const initialOnlyNew = {initial_only_new_literal};
   const initialAllNew = {initial_all_new_literal};
   const initialClusters = {initial_clusters_literal};
+  const initialClusterView = {initial_cluster_view_literal};
+  const initialClusterMinSize = {initial_cluster_min_size_literal};
   const initialDimOpened = {initial_dim_opened_literal};
   const initialOpenedToday = {initial_opened_today_literal};
   const initialDarkMode = {initial_dark_mode_literal};
@@ -1913,11 +2045,62 @@ def build_combined_html(
     return false;
   }}
 
-  function rebuildClusters() {{
-    const inner = document.getElementById("clusters-inner");
-    const countEl = document.getElementById("clusters-count");
-    if (!inner) return;
+  function currentClusterMinSize() {{
+    const sec = document.getElementById("clusters");
+    let n = sec ? Number(sec.getAttribute("data-cluster-min-size")) : initialClusterMinSize;
+    if (!Number.isFinite(n)) n = initialClusterMinSize || 2;
+    return Math.max(1, Math.min(10, Math.round(n)));
+  }}
 
+  function applyClusterMinSize(value, rebuild) {{
+    const n = Math.max(1, Math.min(10, Math.round(Number(value) || 2)));
+    const sec = document.getElementById("clusters");
+    if (sec) sec.setAttribute("data-cluster-min-size", String(n));
+    const label = document.getElementById("cluster-min-size-value");
+    if (label) label.textContent = String(n);
+    const dec = document.getElementById("btn-cluster-min-dec");
+    const inc = document.getElementById("btn-cluster-min-inc");
+    if (dec) dec.disabled = n <= 1;
+    if (inc) inc.disabled = n >= 10;
+    if (rebuild !== false) {{
+      const clusters = document.getElementById("clusters");
+      if (clusters && !clusters.classList.contains("hidden")) rebuildClusters();
+    }}
+    return n;
+  }}
+
+  let clusterState = null;
+  let clusterGraph = null;
+
+  function currentClusterView() {{
+    const sec = document.getElementById("clusters");
+    const mode = sec && sec.getAttribute("data-cluster-view");
+    return mode === "graph" ? "graph" : "list";
+  }}
+
+  function applyClusterView(mode) {{
+    const view = mode === "graph" ? "graph" : "list";
+    const sec = document.getElementById("clusters");
+    if (sec) sec.setAttribute("data-cluster-view", view);
+    const listBtn = document.getElementById("btn-cluster-list");
+    const graphBtn = document.getElementById("btn-cluster-graph");
+    if (listBtn) listBtn.setAttribute("aria-pressed", view === "list" ? "true" : "false");
+    if (graphBtn) graphBtn.setAttribute("aria-pressed", view === "graph" ? "true" : "false");
+    const listView = document.getElementById("clusters-list-view");
+    const graphView = document.getElementById("clusters-graph-view");
+    if (listView) listView.classList.toggle("hidden", view !== "list");
+    if (graphView) graphView.classList.toggle("hidden", view !== "graph");
+    if (view === "list") stopClusterGraph();
+    if (clusterState) {{
+      if (view === "graph") renderClusterGraph(clusterState);
+      else renderClusterList(clusterState);
+    }} else {{
+      const sec2 = document.getElementById("clusters");
+      if (sec2 && !sec2.classList.contains("hidden")) rebuildClusters();
+    }}
+  }}
+
+  function computeClusterState() {{
     const onlyNew = document.body.classList.contains("only-new");
     const siteNameById = {{}};
     document.querySelectorAll("section.site[data-site]").forEach(function (sec) {{
@@ -1968,7 +2151,6 @@ def build_combined_html(
     Object.keys(df).forEach(function (token) {{
       const n = df[token];
       if (n < 2 || n > maxDf) return;
-      // Drop short generic leftovers unless they are known topic aliases (usa, gaza, …)
       if (token.length < 5 && !aliasCanon[token]) return;
       const members = sourceItems.filter(function (item) {{
         return item.tokens.indexOf(token) !== -1;
@@ -1977,12 +2159,14 @@ def build_combined_html(
       const titleHits = members.filter(function (item) {{
         return tokenInTitle(token, item.title) || (item.titleTokens && item.titleTokens.indexOf(token) !== -1);
       }}).length;
-      // Topic must show up in at least two titles, or one title with a wider URL-supported set
       if (titleHits < 2 && !(titleHits >= 1 && members.length >= 3)) return;
       groups[token] = {{ items: members, titleHits: titleHits }};
     }});
 
-    const keys = Object.keys(groups);
+    const minSize = currentClusterMinSize();
+    const keys = Object.keys(groups).filter(function (token) {{
+      return groups[token].items.length >= minSize;
+    }});
     keys.sort(function (a, b) {{
       const ga = groups[a];
       const gb = groups[b];
@@ -1991,33 +2175,87 @@ def build_combined_html(
       if (diff) return diff;
       return a.localeCompare(b);
     }});
-    // Keep the page scannable
     if (keys.length > 60) keys.length = 60;
 
-    inner.innerHTML = "";
-    if (!keys.length) {{
-      const p = document.createElement("p");
-      p.className = "empty";
-      p.textContent = sourceItems.length
-        ? "No shared topics among current headlines."
-        : "No headlines available to cluster.";
-      inner.appendChild(p);
+    const hrefIndex = {{}};
+    keys.forEach(function (key) {{
+      groups[key].items.forEach(function (item) {{
+        if (!hrefIndex[item.href]) hrefIndex[item.href] = [];
+        hrefIndex[item.href].push(key);
+      }});
+    }});
+    const edgeMap = {{}};
+    Object.keys(hrefIndex).forEach(function (href) {{
+      const ks = hrefIndex[href];
+      if (ks.length < 2) return;
+      for (let i = 0; i < ks.length; i++) {{
+        for (let j = i + 1; j < ks.length; j++) {{
+          const a = ks[i] < ks[j] ? ks[i] : ks[j];
+          const b = ks[i] < ks[j] ? ks[j] : ks[i];
+          const ek = a + "|" + b;
+          if (!edgeMap[ek]) edgeMap[ek] = {{ source: a, target: b, weight: 1 }};
+          else edgeMap[ek].weight += 1;
+        }}
+      }}
+    }});
+    const edges = Object.keys(edgeMap).map(function (k) {{ return edgeMap[k]; }});
+
+    return {{
+      keys: keys,
+      groups: groups,
+      displayMap: displayMap,
+      sourceCount: sourceItems.length,
+      edges: edges,
+    }};
+  }}
+
+  function rebuildClusters() {{
+    const countEl = document.getElementById("clusters-count");
+    const data = computeClusterState();
+    clusterState = data;
+    if (!data.keys.length) {{
       if (countEl) countEl.textContent = "(0)";
+      stopClusterGraph();
+      const inner = document.getElementById("clusters-inner");
+      if (inner) {{
+        inner.innerHTML = "";
+        const p = document.createElement("p");
+        p.className = "empty";
+        p.textContent = data.sourceCount
+          ? "No shared topics among current headlines."
+          : "No headlines available to cluster.";
+        inner.appendChild(p);
+      }}
+      resetClusterGraphDetail();
       return;
     }}
-
-    let totalArticles = 0;
     const seenInAny = {{}};
-    keys.forEach(function (key) {{
-      const items = groups[key].items;
-      items.forEach(function (item) {{ seenInAny[item.href] = true; }});
-      totalArticles += items.length;
+    data.keys.forEach(function (key) {{
+      data.groups[key].items.forEach(function (item) {{
+        seenInAny[item.href] = true;
+      }});
+    }});
+    if (countEl) {{
+      countEl.textContent =
+        "(" + data.keys.length + " · " + Object.keys(seenInAny).length + ")";
+    }}
+    if (currentClusterView() === "graph") renderClusterGraph(data);
+    else renderClusterList(data);
+  }}
+
+  function renderClusterList(data) {{
+    stopClusterGraph();
+    const inner = document.getElementById("clusters-inner");
+    if (!inner) return;
+    inner.innerHTML = "";
+    data.keys.forEach(function (key) {{
+      const items = data.groups[key].items;
       const group = document.createElement("div");
       group.className = "cluster-group";
       group.setAttribute("data-cluster", key);
       const label = document.createElement("h3");
       label.className = "cluster-label";
-      label.textContent = titleCaseClusterLabel(key, displayMap) + " ";
+      label.textContent = titleCaseClusterLabel(key, data.displayMap) + " ";
       const size = document.createElement("span");
       size.className = "cluster-size";
       size.textContent = "(" + items.length + ")";
@@ -2033,10 +2271,302 @@ def build_combined_html(
       group.appendChild(ol);
       inner.appendChild(group);
     }});
-    if (countEl) {{
-      countEl.textContent =
-        "(" + keys.length + " · " + Object.keys(seenInAny).length + ")";
+  }}
+
+  function resetClusterGraphDetail(message) {{
+    const title = document.getElementById("clusters-graph-detail-title");
+    const list = document.getElementById("clusters-graph-articles");
+    if (title) title.textContent = "Select a cluster";
+    if (list) {{
+      list.innerHTML = "";
+      const li = document.createElement("li");
+      li.className = "empty";
+      li.textContent = message || "Click a cluster node to see articles.";
+      list.appendChild(li);
     }}
+  }}
+
+  function showClusterGraphDetail(key, data) {{
+    const group = data.groups[key];
+    if (!group) return;
+    const title = document.getElementById("clusters-graph-detail-title");
+    const list = document.getElementById("clusters-graph-articles");
+    if (title) {{
+      title.textContent =
+        titleCaseClusterLabel(key, data.displayMap) + " (" + group.items.length + ")";
+    }}
+    if (!list) return;
+    list.innerHTML = "";
+    group.items.forEach(function (item) {{
+      const clone = item.li.cloneNode(true);
+      clone.classList.remove("hidden-seen-limit");
+      ensureClusterSourceBadge(clone, item.siteId, item.siteName);
+      list.appendChild(clone);
+    }});
+  }}
+
+  function stopClusterGraph() {{
+    if (clusterGraph && clusterGraph.raf) {{
+      cancelAnimationFrame(clusterGraph.raf);
+      clusterGraph.raf = 0;
+    }}
+    if (clusterGraph && clusterGraph.cleanup) clusterGraph.cleanup();
+    clusterGraph = null;
+  }}
+
+  function cssVar(name, fallback) {{
+    const v = getComputedStyle(document.body).getPropertyValue(name);
+    return (v && v.trim()) || fallback;
+  }}
+
+  function renderClusterGraph(data) {{
+    stopClusterGraph();
+    const canvas = document.getElementById("clusters-graph-canvas");
+    if (!canvas || !data.keys.length) {{
+      resetClusterGraphDetail(
+        data && data.sourceCount
+          ? "No shared topics among current headlines."
+          : "No headlines available to cluster."
+      );
+      return;
+    }}
+    resetClusterGraphDetail();
+
+    const dpr = window.devicePixelRatio || 1;
+    function resize() {{
+      const rect = canvas.getBoundingClientRect();
+      const w = Math.max(320, Math.floor(rect.width));
+      const h = Math.max(280, Math.floor(rect.height));
+      canvas.width = Math.floor(w * dpr);
+      canvas.height = Math.floor(h * dpr);
+      return {{ w: w, h: h }};
+    }}
+    let size = resize();
+
+    const maxCount = data.keys.reduce(function (m, key) {{
+      return Math.max(m, data.groups[key].items.length);
+    }}, 1);
+    const rMax = Math.min(44, Math.min(size.w, size.h) * 0.09);
+    const rMin = 8;
+    const nodes = data.keys.map(function (key, i) {{
+      const n = data.groups[key].items.length;
+      const angle = (i / data.keys.length) * Math.PI * 2;
+      const radius = Math.min(size.w, size.h) * 0.28;
+      const t = n / maxCount;
+      return {{
+        id: key,
+        label: titleCaseClusterLabel(key, data.displayMap),
+        count: n,
+        x: size.w / 2 + Math.cos(angle) * radius,
+        y: size.h / 2 + Math.sin(angle) * radius,
+        vx: 0,
+        vy: 0,
+        // Emphasize large clusters: r = rMin + (rMax-rMin) * (size/max)^2
+        r: rMin + (rMax - rMin) * (t * t),
+      }};
+    }});
+    const nodeById = {{}};
+    nodes.forEach(function (n) {{ nodeById[n.id] = n; }});
+    const links = data.edges
+      .map(function (e) {{
+        return {{
+          source: nodeById[e.source],
+          target: nodeById[e.target],
+          weight: e.weight || 1,
+        }};
+      }})
+      .filter(function (e) {{ return e.source && e.target; }});
+
+    let selectedId = null;
+    let dragging = null;
+    let moved = false;
+
+    function tick() {{
+      const w = size.w;
+      const h = size.h;
+      // Repulsion
+      for (let i = 0; i < nodes.length; i++) {{
+        for (let j = i + 1; j < nodes.length; j++) {{
+          const a = nodes[i];
+          const b = nodes[j];
+          let dx = a.x - b.x;
+          let dy = a.y - b.y;
+          let dist2 = dx * dx + dy * dy;
+          if (dist2 < 1) dist2 = 1;
+          const dist = Math.sqrt(dist2);
+          const force = 900 / dist2;
+          dx = (dx / dist) * force;
+          dy = (dy / dist) * force;
+          a.vx += dx;
+          a.vy += dy;
+          b.vx -= dx;
+          b.vy -= dy;
+        }}
+      }}
+      // Attraction along shared-article edges
+      links.forEach(function (link) {{
+        const a = link.source;
+        const b = link.target;
+        let dx = b.x - a.x;
+        let dy = b.y - a.y;
+        const dist = Math.max(1, Math.sqrt(dx * dx + dy * dy));
+        const ideal = 70 + Math.min(80, link.weight * 8);
+        const force = (dist - ideal) * 0.02 * Math.min(3, link.weight);
+        dx = (dx / dist) * force;
+        dy = (dy / dist) * force;
+        a.vx += dx;
+        a.vy += dy;
+        b.vx -= dx;
+        b.vy -= dy;
+      }});
+      // Center gravity + damping + bounds
+      nodes.forEach(function (n) {{
+        if (dragging && dragging.id === n.id) {{
+          n.vx = 0;
+          n.vy = 0;
+          return;
+        }}
+        n.vx += (w / 2 - n.x) * 0.005;
+        n.vy += (h / 2 - n.y) * 0.005;
+        n.vx *= 0.85;
+        n.vy *= 0.85;
+        n.x += n.vx;
+        n.y += n.vy;
+        const m = n.r + 4;
+        if (n.x < m) {{ n.x = m; n.vx *= -0.4; }}
+        if (n.y < m) {{ n.y = m; n.vy *= -0.4; }}
+        if (n.x > w - m) {{ n.x = w - m; n.vx *= -0.4; }}
+        if (n.y > h - m) {{ n.y = h - m; n.vy *= -0.4; }}
+      }});
+    }}
+
+    function draw() {{
+      const ctx = canvas.getContext("2d");
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, size.w, size.h);
+      const edgeColor = cssVar("--border", "#ddd");
+      const textColor = cssVar("--text", "#1a1a1a");
+      const accent = cssVar("--accent", "#1565c0");
+      const panel = cssVar("--panel", "#fff");
+      const muted = cssVar("--muted", "#666");
+
+      ctx.lineWidth = 1;
+      links.forEach(function (link) {{
+        ctx.strokeStyle = edgeColor;
+        ctx.globalAlpha = Math.min(0.85, 0.25 + link.weight * 0.12);
+        ctx.beginPath();
+        ctx.moveTo(link.source.x, link.source.y);
+        ctx.lineTo(link.target.x, link.target.y);
+        ctx.stroke();
+      }});
+      ctx.globalAlpha = 1;
+
+      nodes.forEach(function (n) {{
+        const active = n.id === selectedId;
+        ctx.beginPath();
+        ctx.fillStyle = active ? accent : panel;
+        ctx.strokeStyle = accent;
+        ctx.lineWidth = active ? 2.5 : 1.5;
+        ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = active ? "#fff" : textColor;
+        const fontPx = Math.max(10, Math.min(15, Math.round(n.r * 0.55)));
+        ctx.font = "600 " + fontPx + "px Lato, Helvetica, Arial, sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        const maxChars = Math.max(6, Math.floor(n.r / 2.2));
+        const label = n.label.length > maxChars ? n.label.slice(0, Math.max(4, maxChars - 1)) + "…" : n.label;
+        ctx.fillText(label, n.x, n.y - 1);
+        ctx.fillStyle = active ? "rgba(255,255,255,0.85)" : muted;
+        ctx.font = "11px Lato, Helvetica, Arial, sans-serif";
+        ctx.fillText(String(n.count), n.x, n.y + n.r + 11);
+      }});
+    }}
+
+    function frame() {{
+      for (let i = 0; i < 2; i++) tick();
+      draw();
+      clusterGraph.raf = requestAnimationFrame(frame);
+    }}
+
+    function canvasPos(evt) {{
+      const rect = canvas.getBoundingClientRect();
+      return {{
+        x: ((evt.clientX - rect.left) / rect.width) * size.w,
+        y: ((evt.clientY - rect.top) / rect.height) * size.h,
+      }};
+    }}
+
+    function hitTest(pos) {{
+      for (let i = nodes.length - 1; i >= 0; i--) {{
+        const n = nodes[i];
+        const dx = pos.x - n.x;
+        const dy = pos.y - n.y;
+        if (dx * dx + dy * dy <= (n.r + 4) * (n.r + 4)) return n;
+      }}
+      return null;
+    }}
+
+    function onPointerDown(evt) {{
+      const pos = canvasPos(evt);
+      const hit = hitTest(pos);
+      if (!hit) return;
+      dragging = hit;
+      moved = false;
+      canvas.classList.add("is-dragging");
+      canvas.setPointerCapture(evt.pointerId);
+    }}
+    function onPointerMove(evt) {{
+      if (!dragging) return;
+      const pos = canvasPos(evt);
+      dragging.x = pos.x;
+      dragging.y = pos.y;
+      dragging.vx = 0;
+      dragging.vy = 0;
+      moved = true;
+    }}
+    function onPointerUp(evt) {{
+      if (!dragging) return;
+      const node = dragging;
+      dragging = null;
+      canvas.classList.remove("is-dragging");
+      try {{ canvas.releasePointerCapture(evt.pointerId); }} catch (e) {{}}
+      if (!moved) {{
+        selectedId = node.id;
+        showClusterGraphDetail(node.id, data);
+      }}
+    }}
+    function onResize() {{
+      const prev = size;
+      size = resize();
+      const sx = size.w / Math.max(1, prev.w);
+      const sy = size.h / Math.max(1, prev.h);
+      nodes.forEach(function (n) {{
+        n.x *= sx;
+        n.y *= sy;
+      }});
+    }}
+
+    canvas.addEventListener("pointerdown", onPointerDown);
+    canvas.addEventListener("pointermove", onPointerMove);
+    canvas.addEventListener("pointerup", onPointerUp);
+    canvas.addEventListener("pointercancel", onPointerUp);
+    window.addEventListener("resize", onResize);
+
+    clusterGraph = {{
+      raf: 0,
+      cleanup: function () {{
+        canvas.removeEventListener("pointerdown", onPointerDown);
+        canvas.removeEventListener("pointermove", onPointerMove);
+        canvas.removeEventListener("pointerup", onPointerUp);
+        canvas.removeEventListener("pointercancel", onPointerUp);
+        window.removeEventListener("resize", onResize);
+        canvas.classList.remove("is-dragging");
+      }},
+    }};
+    clusterGraph.raf = requestAnimationFrame(frame);
   }}
 
   function applyClusters(show) {{
@@ -2048,6 +2578,7 @@ def build_combined_html(
     const section = document.getElementById("clusters");
     if (section) section.classList.toggle("hidden", !on);
     if (on) rebuildClusters();
+    else stopClusterGraph();
   }}
 
   function applyDimOpened(dim) {{
@@ -2405,6 +2936,34 @@ def build_combined_html(
   applyExternal(loadBool(EXT_KEY, initialExternal));
   applyOnlyNew(loadBool(ONLY_NEW_KEY, initialOnlyNew));
   applyAllNew(loadBool(ALL_NEW_KEY, initialAllNew));
+  (function () {{
+    let minSize = initialClusterMinSize;
+    try {{
+      const raw = localStorage.getItem("newsextract.clusterMinSize");
+      if (raw !== null && raw !== "") minSize = Number(JSON.parse(raw));
+    }} catch (e) {{}}
+    applyClusterMinSize(minSize, false);
+  }})();
+  (function () {{
+    let view = initialClusterView;
+    try {{
+      const raw = localStorage.getItem("newsextract.clusterView");
+      if (raw !== null && raw !== "") {{
+        const parsed = JSON.parse(raw);
+        if (parsed === "list" || parsed === "graph") view = parsed;
+      }}
+    }} catch (e) {{}}
+    const sec = document.getElementById("clusters");
+    if (sec) sec.setAttribute("data-cluster-view", view);
+    const listBtn = document.getElementById("btn-cluster-list");
+    const graphBtn = document.getElementById("btn-cluster-graph");
+    if (listBtn) listBtn.setAttribute("aria-pressed", view === "list" ? "true" : "false");
+    if (graphBtn) graphBtn.setAttribute("aria-pressed", view === "graph" ? "true" : "false");
+    const listView = document.getElementById("clusters-list-view");
+    const graphView = document.getElementById("clusters-graph-view");
+    if (listView) listView.classList.toggle("hidden", view !== "list");
+    if (graphView) graphView.classList.toggle("hidden", view !== "graph");
+  }})();
   applyClusters(loadBool(CLUSTERS_KEY, initialClusters));
   applyDimOpened(loadBool(DIM_OPENED_KEY, initialDimOpened));
   applyOpenedTodayPanel(loadBool(OPENED_TODAY_KEY, initialOpenedToday));
@@ -2585,6 +3144,27 @@ def build_combined_html(
     setStatus(show ? "Cluster view shown" : "Cluster view hidden");
   }});
 
+  document.getElementById("btn-cluster-list").addEventListener("click", function () {{
+    saveState("newsextract.clusterView", "list");
+    applyClusterView("list");
+    setStatus("Cluster list view");
+  }});
+  document.getElementById("btn-cluster-graph").addEventListener("click", function () {{
+    saveState("newsextract.clusterView", "graph");
+    applyClusterView("graph");
+    setStatus("Cluster graph view");
+  }});
+  document.getElementById("btn-cluster-min-dec").addEventListener("click", function () {{
+    const n = applyClusterMinSize(currentClusterMinSize() - 1);
+    saveState("newsextract.clusterMinSize", n);
+    setStatus("Minimum cluster size " + n);
+  }});
+  document.getElementById("btn-cluster-min-inc").addEventListener("click", function () {{
+    const n = applyClusterMinSize(currentClusterMinSize() + 1);
+    saveState("newsextract.clusterMinSize", n);
+    setStatus("Minimum cluster size " + n);
+  }});
+
   document.getElementById("toggle-dim-opened").addEventListener("change", function () {{
     const dim = document.getElementById("toggle-dim-opened").checked;
     saveState(DIM_OPENED_KEY, dim);
@@ -2716,6 +3296,8 @@ def build_combined_html(
     nextSettings.site_order = siteOrder;
     nextSettings.show_all_new = showAllNew;
     nextSettings.show_clusters = showClusters;
+    nextSettings.cluster_view = currentClusterView();
+    nextSettings.cluster_min_size = currentClusterMinSize();
     nextSettings.dim_opened = dimOpened;
     nextSettings.show_opened_today = showOpenedToday;
     nextSettings.dark_mode = darkMode;

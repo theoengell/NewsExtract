@@ -168,6 +168,8 @@ Global UI defaults, for example:
 | `only_new` | Hide “previously seen” blocks |
 | `show_all_new` | Show the combined “All new” section |
 | `show_clusters` | Show the keyword cluster view (also toggled by the Cluster header button) |
+| `cluster_view` | Cluster presentation: `list` or `graph` |
+| `cluster_min_size` | Minimum articles required for a cluster to appear (1–10) |
 | `dim_opened` | Dim headlines you’ve opened |
 | `show_opened_today` | Show the “Opened today” panel |
 | `dark_mode` | Start in dark theme |

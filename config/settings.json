@@ -27,6 +27,8 @@
   "show_opened_today": true,
   "dark_mode": false,
   "show_clusters": false,
+  "cluster_view": "list",
+  "cluster_min_size": 2,
   "languages": {
     "da": true,
     "en": true

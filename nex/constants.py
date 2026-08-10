@@ -27,6 +27,8 @@ def make_default_settings():
         "show_opened_today": True,
         "dark_mode": False,
         "show_clusters": False,
+        "cluster_view": "list",
+        "cluster_min_size": 2,
         "languages": {"da": True, "en": True},
     }
 
