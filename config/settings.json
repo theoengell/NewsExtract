@@ -26,6 +26,7 @@
   "dim_opened": true,
   "show_opened_today": true,
   "dark_mode": false,
+  "show_clusters": false,
   "languages": {
     "da": true,
     "en": true

@@ -484,3 +484,61 @@ def save_settings_config(path, config):
             f.write("\n")
     except OSError as e:
         print(f"Warning: couldn't write {path} ({e}).", file=sys.stderr)
+
+
+def load_cluster_ignore_words(path=None):
+    """
+    Load per-language ignore-word lists for clustering.
+
+    Returns dict {"en": [str, ...], "da": [str, ...]} with ~1000 words each.
+    Missing/invalid files yield empty lists (clustering still works, just noisier).
+    """
+    from .constants import DEFAULT_CLUSTER_IGNORE_FILE
+
+    path = path or DEFAULT_CLUSTER_IGNORE_FILE
+    empty = {"en": [], "da": []}
+    if not path or not os.path.exists(path):
+        print(
+            f"Warning: cluster ignore words not found at {path}.",
+            file=sys.stderr,
+        )
+        return empty
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+    except (json.JSONDecodeError, OSError) as e:
+        print(f"Warning: couldn't read {path} ({e}).", file=sys.stderr)
+        return empty
+    if not isinstance(data, dict):
+        return empty
+
+    out = {}
+    for lang in ("en", "da"):
+        raw = data.get(lang, [])
+        if not isinstance(raw, list):
+            raw = []
+        seen = set()
+        words = []
+        for item in raw:
+            w = str(item or "").strip().casefold()
+            if len(w) < 2 or w in seen:
+                continue
+            seen.add(w)
+            words.append(w)
+        out[lang] = words
+    return out
+
+
+def cluster_ignore_lookup(ignore_by_lang):
+    """Flatten per-language lists into a single casefolded membership dict for JS."""
+    lookup = {}
+    if not isinstance(ignore_by_lang, dict):
+        return lookup
+    for words in ignore_by_lang.values():
+        if not isinstance(words, list):
+            continue
+        for w in words:
+            key = str(w or "").strip().casefold()
+            if len(key) >= 2:
+                lookup[key] = 1
+    return lookup

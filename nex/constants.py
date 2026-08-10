@@ -5,6 +5,7 @@ DEFAULT_CATEGORIES_FILE = "config/categories.json"
 LEGACY_COLOR_MAP_FILE = "config/url_colors.json"
 DEFAULT_SITES_FILE = "config/sites.json"
 DEFAULT_SETTINGS_FILE = "config/settings.json"
+DEFAULT_CLUSTER_IGNORE_FILE = "config/cluster_ignore_words.json"
 DEFAULT_HTML_FILE = "headlines.html"
 DEFAULT_LOGOS_DIR = "logos"
 APP_VERSION = "0.1.1"
@@ -25,6 +26,7 @@ def make_default_settings():
         "dim_opened": True,
         "show_opened_today": True,
         "dark_mode": False,
+        "show_clusters": False,
         "languages": {"da": True, "en": True},
     }
 

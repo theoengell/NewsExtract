@@ -11,14 +11,16 @@ from urllib.parse import unquote, urlparse
 from parsers.base import normalize_domain
 
 from .config import (
+    cluster_ignore_lookup,
     get_bg_color,
     language_label,
+    load_cluster_ignore_words,
     match_category,
     normalize_languages,
     normalize_site_order,
     site_language,
 )
-from .constants import APP_VERSION, KNOWN_LANGUAGES
+from .constants import APP_VERSION, DEFAULT_CLUSTER_IGNORE_FILE, KNOWN_LANGUAGES
 
 def is_external_href(href, base_url, allowed_domains=None):
     """
@@ -387,7 +389,15 @@ def _render_all_new_section(
   </section>"""
 
 
-def build_combined_html(site_blocks, categories, sites_config, settings, site_domains, update_notice=None):
+def build_combined_html(
+    site_blocks,
+    categories,
+    sites_config,
+    settings,
+    site_domains,
+    update_notice=None,
+    cluster_ignore_path=None,
+):
     """
     site_blocks: list of dicts with keys:
       site_id, name, url, new_results, seen_results, is_first_run, error (optional)
@@ -401,6 +411,21 @@ def build_combined_html(site_blocks, categories, sites_config, settings, site_do
     dim_opened = bool(settings.get("dim_opened", True))
     show_opened_today = bool(settings.get("show_opened_today", True))
     dark_mode = bool(settings.get("dark_mode", False))
+    show_clusters = bool(settings.get("show_clusters", False))
+    ignore_by_lang = load_cluster_ignore_words(
+        cluster_ignore_path or DEFAULT_CLUSTER_IGNORE_FILE
+    )
+    ignore_lookup = cluster_ignore_lookup(ignore_by_lang)
+    # Always drop news-section / local-boilerplate tokens that frequency lists miss.
+    for extra in (
+        "internationalt", "international", "national", "nationalt", "samfund",
+        "content", "danmark", "denmark", "danish", "dansk", "danske", "danmarks",
+        "kobenhavn", "koebenhavn", "københavn", "copenhagen", "aarhus", "århus",
+        "aarig", "aarige", "arig", "arige", "amp", "amphtml", "virksomheder",
+        "ece", "art", "cid", "politik", "udland", "indland", "nyheder", "nyhed",
+    ):
+        ignore_lookup[extra] = 1
+    ignore_words_literal = json.dumps(ignore_lookup, ensure_ascii=False)
     available_langs = sorted({
         site_language(sites_config.get(b["site_id"]), b.get("language") or "da")
         for b in site_blocks
@@ -573,6 +598,20 @@ def build_combined_html(site_blocks, categories, sites_config, settings, site_do
         languages=languages,
         exclude_keywords=exclude_keywords,
     )
+    clusters_hidden = "" if show_clusters else " hidden"
+    clusters_section = f"""  <section class="clusters{clusters_hidden}" id="clusters" data-panel="clusters" data-collapse-id="clusters">
+    <h2 class="site-title">
+      <button type="button" class="site-collapse-toggle" aria-expanded="true" aria-controls="clusters-body" title="Collapse or expand">
+        <span class="site-name">Clusters</span>
+      </button>
+      <span class="count-inline" id="clusters-count">(0)</span>
+    </h2>
+    <div class="site-body" id="clusters-body">
+      <div class="site-body-inner" id="clusters-inner">
+        <p class="empty">No shared topics among current headlines.</p>
+      </div>
+    </div>
+  </section>"""
     opened_hidden = "" if show_opened_today else " hidden"
     opened_today_section = f"""  <section class="opened-today{opened_hidden}" id="opened-today" data-panel="opened-today">
     <h2 class="site-title">Opened today <span class="count-inline" id="opened-today-count">(0)</span></h2>
@@ -604,6 +643,7 @@ def build_combined_html(site_blocks, categories, sites_config, settings, site_do
     dim_opened_checked = " checked" if dim_opened else ""
     opened_today_checked = " checked" if show_opened_today else ""
     dark_mode_checked = " checked" if dark_mode else ""
+    clusters_checked = " checked" if show_clusters else ""
     body_classes = []
     if dim_opened:
         body_classes.append("dim-opened")
@@ -621,6 +661,7 @@ def build_combined_html(site_blocks, categories, sites_config, settings, site_do
     initial_dim_opened_literal = json.dumps(dim_opened)
     initial_opened_today_literal = json.dumps(show_opened_today)
     initial_dark_mode_literal = json.dumps(dark_mode)
+    initial_clusters_literal = json.dumps(show_clusters)
     initial_bg_strength_literal = json.dumps(bg_strength)
     initial_seen_limit_literal = json.dumps(seen_limit)
     initial_highlight_words_literal = json.dumps(highlight_words_raw, ensure_ascii=False)
@@ -772,7 +813,8 @@ def build_combined_html(site_blocks, categories, sites_config, settings, site_do
     flex: 0 0 auto;
   }}
   .btn-settings,
-  .btn-theme {{
+  .btn-theme,
+  .btn-cluster {{
     font: inherit;
     font-size: 0.9rem;
     padding: 0.4em 0.85em;
@@ -784,7 +826,14 @@ def build_combined_html(site_blocks, categories, sites_config, settings, site_do
     box-shadow: 0 1px 2px rgba(0,0,0,0.04);
   }}
   .btn-settings:hover,
-  .btn-theme:hover {{ background: var(--hover); }}
+  .btn-theme:hover,
+  .btn-cluster:hover {{ background: var(--hover); }}
+  .btn-cluster[aria-pressed="true"] {{
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }}
+  .btn-cluster[aria-pressed="true"]:hover {{ filter: brightness(1.05); background: var(--accent); }}
   .settings-backdrop {{
     display: none;
     position: fixed;
@@ -1016,10 +1065,12 @@ def build_combined_html(site_blocks, categories, sites_config, settings, site_do
     min-height: 0;
   }}
   section.site.collapsed > .site-body,
-  section.all-new.collapsed > .site-body {{
+  section.all-new.collapsed > .site-body,
+  section.clusters.collapsed > .site-body {{
     grid-template-rows: 0fr;
   }}
   section.all-new,
+  section.clusters,
   section.opened-today {{
     background: var(--panel);
     border: 1px solid var(--border);
@@ -1028,11 +1079,42 @@ def build_combined_html(site_blocks, categories, sites_config, settings, site_do
     margin-bottom: 1.2em;
   }}
   section.all-new.hidden,
+  section.clusters.hidden,
   section.opened-today.hidden {{ display: none; }}
-  section.all-new.collapsed {{
+  section.all-new.collapsed,
+  section.clusters.collapsed {{
     padding-bottom: 1em;
   }}
-  section.all-new.collapsed > .site-title {{ margin-bottom: 0; }}
+  section.all-new.collapsed > .site-title,
+  section.clusters.collapsed > .site-title {{ margin-bottom: 0; }}
+  .cluster-group {{
+    margin: 0 0 1em;
+    padding: 0 0 0.75em;
+    border-bottom: 1px solid var(--border);
+  }}
+  .cluster-group:last-child {{
+    margin-bottom: 0;
+    padding-bottom: 0;
+    border-bottom: none;
+  }}
+  .cluster-label {{
+    font-family: var(--font-body);
+    font-size: 1rem;
+    font-weight: 700;
+    margin: 0 0 0.45em;
+    color: var(--accent);
+    letter-spacing: 0.01em;
+  }}
+  .cluster-label .cluster-size {{
+    font-weight: 500;
+    font-size: 0.85em;
+    color: var(--muted);
+  }}
+  .cluster-group ol {{
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }}
   .count-inline {{
     color: var(--muted);
     font-weight: 500;
@@ -1255,6 +1337,7 @@ def build_combined_html(site_blocks, categories, sites_config, settings, site_do
       <h1>NewsExtract <span class="brand-version">v{html.escape(APP_VERSION)}</span>{(f' <a class="version-update-link" href="{html.escape(update_notice.get("url", ""), quote=True)}" target="_blank" rel="noopener noreferrer">{html.escape(update_notice.get("message", "New version available"))}</a>' if isinstance(update_notice, dict) and update_notice.get("url") else "")}</h1>
     </div>
     <div class="header-actions">
+      <button type="button" class="btn-cluster" id="btn-cluster" aria-pressed="{str(show_clusters).lower()}" title="Group related headlines by shared keywords">Cluster</button>
       <button type="button" class="btn-theme" id="btn-theme" aria-pressed="{str(dark_mode).lower()}" title="Toggle dark / light mode">{("Light" if dark_mode else "Dark")}</button>
       <button type="button" class="btn-settings" id="btn-open-settings" aria-haspopup="dialog">Settings</button>
     </div>
@@ -1307,6 +1390,10 @@ def build_combined_html(site_blocks, categories, sites_config, settings, site_do
           Show “All new” feed
         </label>
         <label class="toggle">
+          <input type="checkbox" id="toggle-clusters"{clusters_checked}>
+          Show cluster view
+        </label>
+        <label class="toggle">
           <input type="checkbox" id="toggle-dim-opened"{dim_opened_checked}>
           Dim opened links
         </label>
@@ -1351,6 +1438,7 @@ def build_combined_html(site_blocks, categories, sites_config, settings, site_do
     </div>
   </div>
 
+{clusters_section}
 {all_new_section}
 {opened_today_section}
 {chr(10).join(sections)}
@@ -1362,6 +1450,7 @@ def build_combined_html(site_blocks, categories, sites_config, settings, site_do
   const EXT_KEY = "newsextract.showExternal";
   const ONLY_NEW_KEY = "newsextract.onlyNew";
   const ALL_NEW_KEY = "newsextract.showAllNew";
+  const CLUSTERS_KEY = "newsextract.showClusters";
   const DIM_OPENED_KEY = "newsextract.dimOpened";
   const OPENED_TODAY_KEY = "newsextract.showOpenedToday";
   const DARK_MODE_KEY = "newsextract.darkMode";
@@ -1376,6 +1465,7 @@ def build_combined_html(site_blocks, categories, sites_config, settings, site_do
   const initialExternal = {initial_external_literal};
   const initialOnlyNew = {initial_only_new_literal};
   const initialAllNew = {initial_all_new_literal};
+  const initialClusters = {initial_clusters_literal};
   const initialDimOpened = {initial_dim_opened_literal};
   const initialOpenedToday = {initial_opened_today_literal};
   const initialDarkMode = {initial_dark_mode_literal};
@@ -1587,6 +1677,10 @@ def build_combined_html(site_blocks, categories, sites_config, settings, site_do
     if (allNew) {{
       state["all-new"] = allNew.classList.contains("collapsed");
     }}
+    const clusters = document.getElementById("clusters");
+    if (clusters) {{
+      state["clusters"] = clusters.classList.contains("collapsed");
+    }}
     return state;
   }}
 
@@ -1605,11 +1699,20 @@ def build_combined_html(site_blocks, categories, sites_config, settings, site_do
       const btn = allNew.querySelector(".site-collapse-toggle");
       if (btn) btn.setAttribute("aria-expanded", collapsed ? "false" : "true");
     }}
+    const clusters = document.getElementById("clusters");
+    if (clusters) {{
+      const collapsed = state["clusters"] === true;
+      clusters.classList.toggle("collapsed", collapsed);
+      const btn = clusters.querySelector(".site-collapse-toggle");
+      if (btn) btn.setAttribute("aria-expanded", collapsed ? "false" : "true");
+    }}
   }}
 
-  document.querySelectorAll("section.site .site-collapse-toggle, section.all-new .site-collapse-toggle").forEach(function (btn) {{
+  document.querySelectorAll(
+    "section.site .site-collapse-toggle, section.all-new .site-collapse-toggle, section.clusters .site-collapse-toggle"
+  ).forEach(function (btn) {{
     btn.addEventListener("click", function () {{
-      const sec = btn.closest("section.site, section.all-new");
+      const sec = btn.closest("section.site, section.all-new, section.clusters");
       if (!sec) return;
       const collapsed = !sec.classList.contains("collapsed");
       sec.classList.toggle("collapsed", collapsed);
@@ -1634,6 +1737,8 @@ def build_combined_html(site_blocks, categories, sites_config, settings, site_do
     }});
     const el = document.getElementById("all-new-count");
     if (el) el.textContent = "(" + visible + ")";
+    const clusters = document.getElementById("clusters");
+    if (clusters && !clusters.classList.contains("hidden")) rebuildClusters();
   }}
 
   function refreshCollapsedNewCounts() {{
@@ -1664,6 +1769,285 @@ def build_combined_html(site_blocks, categories, sites_config, settings, site_do
     if (cb) cb.checked = !!show;
     const section = document.getElementById("all-new");
     if (section) section.classList.toggle("hidden", !show);
+  }}
+
+  const CLUSTER_IGNORE_WORDS = {ignore_words_literal};
+
+  const CLUSTER_ALIASES = {{
+    rusland: "russia", russia: "russia", russian: "russia", russisk: "russia",
+    russiske: "russia", russerne: "russia", russern: "russia", russere: "russia",
+    ukraine: "ukraine", ukraina: "ukraine", ukrainsk: "ukraine", ukrainske: "ukraine",
+    trump: "trump", trumps: "trump",
+    putin: "putin", putins: "putin",
+    gronland: "greenland", groenland: "greenland", grønland: "greenland",
+    greenland: "greenland",
+    klima: "climate", climate: "climate", klimat: "climate",
+    israel: "israel", gaza: "gaza", hamas: "hamas",
+    kina: "china", china: "china", chinese: "china", kinesisk: "china", kinesiske: "china",
+    usa: "usa", amerika: "usa", america: "usa", american: "usa", amerikansk: "usa",
+    colombia: "colombia", columbia: "colombia", kolumbien: "colombia",
+    jordskaelv: "earthquake", jordskælv: "earthquake", earthquake: "earthquake",
+    zelenskyj: "zelensky", zelensky: "zelensky", zelenskij: "zelensky"
+  }};
+
+  function clusterPathText(href) {{
+    if (!href) return "";
+    try {{
+      const u = new URL(href, window.location.href);
+      return decodeURIComponent(u.pathname || "").replace(/[\\/_+.-]+/g, " ");
+    }} catch (e) {{
+      return String(href).replace(/[\\/?&#=_+.-]+/g, " ");
+    }}
+  }}
+
+  function foldClusterToken(w) {{
+    return String(w || "")
+      .toLowerCase()
+      .replace(/æ/g, "ae")
+      .replace(/ø/g, "oe")
+      .replace(/å/g, "aa")
+      .replace(/ä/g, "ae")
+      .replace(/ö/g, "oe")
+      .replace(/ü/g, "ue");
+  }}
+
+  function hasDanishLetters(w) {{
+    return /[æøåäöü]/i.test(w || "");
+  }}
+
+  function rememberClusterDisplay(displayMap, canon, surface) {{
+    if (!displayMap || !canon || !surface) return;
+    const s = String(surface).toLowerCase();
+    const prev = displayMap[canon];
+    if (!prev) {{
+      displayMap[canon] = s;
+      return;
+    }}
+    const sDa = hasDanishLetters(s);
+    const pDa = hasDanishLetters(prev);
+    if (sDa && !pDa) displayMap[canon] = s;
+    else if (sDa === pDa && s.length > prev.length) displayMap[canon] = s;
+  }}
+
+  function extractClusterTokens(title, href, displayMap) {{
+    const raw = ((title || "") + " " + clusterPathText(href)).toLowerCase();
+    const parts = raw.match(/[a-z0-9æøåäöü]+/gi) || [];
+    const seen = {{}};
+    const out = [];
+    parts.forEach(function (p) {{
+      const original = p.toLowerCase();
+      let w = original;
+      if (w.length < 3) return;
+      if (/^\\d+$/.test(w)) return;
+      if (/^(art|ece|cid|id)\\d+$/i.test(w)) return;
+      if (/^\\d{{4,}}$/.test(w)) return;
+      const folded = foldClusterToken(w);
+      if (CLUSTER_IGNORE_WORDS[w] || CLUSTER_IGNORE_WORDS[folded]) return;
+      let canon;
+      if (CLUSTER_ALIASES[w]) canon = CLUSTER_ALIASES[w];
+      else if (CLUSTER_ALIASES[folded]) canon = CLUSTER_ALIASES[folded];
+      else canon = folded;
+      if (CLUSTER_IGNORE_WORDS[canon]) return;
+      if (canon.length < 3) return;
+      rememberClusterDisplay(displayMap, canon, original);
+      if (seen[canon]) return;
+      seen[canon] = true;
+      out.push(canon);
+    }});
+    return out;
+  }}
+
+  function titleCaseClusterLabel(word, displayMap) {{
+    if (!word) return "";
+    // Prefer Danish spellings for known topics
+    const labels = {{
+      russia: "Rusland",
+      ukraine: "Ukraine",
+      trump: "Trump",
+      putin: "Putin",
+      greenland: "Grønland",
+      climate: "Klima",
+      colombia: "Colombia",
+      earthquake: "Jordskælv",
+      zelensky: "Zelenskyj",
+      china: "Kina",
+      usa: "USA",
+      israel: "Israel",
+      gaza: "Gaza",
+      hamas: "Hamas"
+    }};
+    if (labels[word]) return labels[word];
+    const surface = displayMap && displayMap[word] ? displayMap[word] : word;
+    return surface.charAt(0).toUpperCase() + surface.slice(1);
+  }}
+
+  function isClusterSourceVisible(li) {{
+    if (
+      li.classList.contains("hidden-cat") ||
+      li.classList.contains("hidden-external") ||
+      li.classList.contains("hidden-exclude")
+    ) return false;
+    const sec = li.closest("section.site");
+    if (sec && sec.classList.contains("hidden")) return false;
+    return true;
+  }}
+
+  function ensureClusterSourceBadge(li, siteId, siteName) {{
+    if (!li || li.querySelector(".src-badge")) return;
+    const badge = document.createElement("span");
+    badge.className = "src-badge";
+    badge.title = siteName || siteId || "";
+    const name = document.createElement("span");
+    name.className = "src-name";
+    name.textContent = siteName || siteId || "";
+    badge.appendChild(name);
+    li.insertBefore(badge, li.firstChild);
+  }}
+
+  function tokenInTitle(token, title) {{
+    const foldedTitle = foldClusterToken(title || "");
+    if (foldedTitle.indexOf(token) !== -1) return true;
+    for (const [alias, canon] of Object.entries(CLUSTER_ALIASES)) {{
+      if (canon === token && foldedTitle.indexOf(foldClusterToken(alias)) !== -1) return true;
+    }}
+    return false;
+  }}
+
+  function rebuildClusters() {{
+    const inner = document.getElementById("clusters-inner");
+    const countEl = document.getElementById("clusters-count");
+    if (!inner) return;
+
+    const onlyNew = document.body.classList.contains("only-new");
+    const siteNameById = {{}};
+    document.querySelectorAll("section.site[data-site]").forEach(function (sec) {{
+      const id = sec.getAttribute("data-site");
+      const nameEl = sec.querySelector(".site-name");
+      siteNameById[id] = nameEl ? nameEl.textContent.trim() : id;
+    }});
+
+    const sourceItems = [];
+    const seenHref = {{}};
+    const displayMap = {{}};
+    document.querySelectorAll("section.site li.headline[data-href]").forEach(function (li) {{
+      if (!isClusterSourceVisible(li)) return;
+      if (onlyNew && li.getAttribute("data-new") !== "1") return;
+      const href = li.getAttribute("data-href");
+      if (!href || seenHref[href]) return;
+      seenHref[href] = true;
+      const a = li.querySelector("a");
+      const title = a ? a.textContent : "";
+      const tip = li.querySelector(".url-tip");
+      const tipText = tip ? tip.textContent : "";
+      const siteId = li.getAttribute("data-site") || "";
+      const toks = extractClusterTokens(title + " " + tipText, href, displayMap);
+      sourceItems.push({{
+        li: li,
+        href: href,
+        title: title,
+        siteId: siteId,
+        siteName: siteNameById[siteId] || siteId,
+        tokens: toks,
+        titleTokens: extractClusterTokens(title, "", displayMap),
+      }});
+    }});
+
+    const df = {{}};
+    sourceItems.forEach(function (item) {{
+      item.tokens.forEach(function (t) {{
+        df[t] = (df[t] || 0) + 1;
+      }});
+    }});
+
+    const maxDf = Math.max(8, Math.min(30, Math.floor(sourceItems.length * 0.08) || 8));
+    const aliasCanon = {{}};
+    Object.keys(CLUSTER_ALIASES).forEach(function (k) {{
+      aliasCanon[CLUSTER_ALIASES[k]] = true;
+    }});
+    const groups = {{}};
+    Object.keys(df).forEach(function (token) {{
+      const n = df[token];
+      if (n < 2 || n > maxDf) return;
+      // Drop short generic leftovers unless they are known topic aliases (usa, gaza, …)
+      if (token.length < 5 && !aliasCanon[token]) return;
+      const members = sourceItems.filter(function (item) {{
+        return item.tokens.indexOf(token) !== -1;
+      }});
+      if (members.length < 2) return;
+      const titleHits = members.filter(function (item) {{
+        return tokenInTitle(token, item.title) || (item.titleTokens && item.titleTokens.indexOf(token) !== -1);
+      }}).length;
+      // Topic must show up in at least two titles, or one title with a wider URL-supported set
+      if (titleHits < 2 && !(titleHits >= 1 && members.length >= 3)) return;
+      groups[token] = {{ items: members, titleHits: titleHits }};
+    }});
+
+    const keys = Object.keys(groups);
+    keys.sort(function (a, b) {{
+      const ga = groups[a];
+      const gb = groups[b];
+      if (gb.titleHits > 0 !== ga.titleHits > 0) return gb.titleHits > 0 ? -1 : 1;
+      const diff = gb.items.length - ga.items.length;
+      if (diff) return diff;
+      return a.localeCompare(b);
+    }});
+    // Keep the page scannable
+    if (keys.length > 60) keys.length = 60;
+
+    inner.innerHTML = "";
+    if (!keys.length) {{
+      const p = document.createElement("p");
+      p.className = "empty";
+      p.textContent = sourceItems.length
+        ? "No shared topics among current headlines."
+        : "No headlines available to cluster.";
+      inner.appendChild(p);
+      if (countEl) countEl.textContent = "(0)";
+      return;
+    }}
+
+    let totalArticles = 0;
+    const seenInAny = {{}};
+    keys.forEach(function (key) {{
+      const items = groups[key].items;
+      items.forEach(function (item) {{ seenInAny[item.href] = true; }});
+      totalArticles += items.length;
+      const group = document.createElement("div");
+      group.className = "cluster-group";
+      group.setAttribute("data-cluster", key);
+      const label = document.createElement("h3");
+      label.className = "cluster-label";
+      label.textContent = titleCaseClusterLabel(key, displayMap) + " ";
+      const size = document.createElement("span");
+      size.className = "cluster-size";
+      size.textContent = "(" + items.length + ")";
+      label.appendChild(size);
+      group.appendChild(label);
+      const ol = document.createElement("ol");
+      items.forEach(function (item) {{
+        const clone = item.li.cloneNode(true);
+        clone.classList.remove("hidden-seen-limit");
+        ensureClusterSourceBadge(clone, item.siteId, item.siteName);
+        ol.appendChild(clone);
+      }});
+      group.appendChild(ol);
+      inner.appendChild(group);
+    }});
+    if (countEl) {{
+      countEl.textContent =
+        "(" + keys.length + " · " + Object.keys(seenInAny).length + ")";
+    }}
+  }}
+
+  function applyClusters(show) {{
+    const on = !!show;
+    const cb = document.getElementById("toggle-clusters");
+    if (cb) cb.checked = on;
+    const btn = document.getElementById("btn-cluster");
+    if (btn) btn.setAttribute("aria-pressed", on ? "true" : "false");
+    const section = document.getElementById("clusters");
+    if (section) section.classList.toggle("hidden", !on);
+    if (on) rebuildClusters();
   }}
 
   function applyDimOpened(dim) {{
@@ -1832,6 +2216,8 @@ def build_combined_html(site_blocks, categories, sites_config, settings, site_do
   function applyOnlyNew(only) {{
     document.getElementById("toggle-only-new").checked = !!only;
     document.body.classList.toggle("only-new", !!only);
+    const clusters = document.getElementById("clusters");
+    if (clusters && !clusters.classList.contains("hidden")) rebuildClusters();
   }}
 
   function applyBgStrength(value) {{
@@ -2019,6 +2405,7 @@ def build_combined_html(site_blocks, categories, sites_config, settings, site_do
   applyExternal(loadBool(EXT_KEY, initialExternal));
   applyOnlyNew(loadBool(ONLY_NEW_KEY, initialOnlyNew));
   applyAllNew(loadBool(ALL_NEW_KEY, initialAllNew));
+  applyClusters(loadBool(CLUSTERS_KEY, initialClusters));
   applyDimOpened(loadBool(DIM_OPENED_KEY, initialDimOpened));
   applyOpenedTodayPanel(loadBool(OPENED_TODAY_KEY, initialOpenedToday));
   applyDarkMode(loadBool(DARK_MODE_KEY, initialDarkMode));
@@ -2179,6 +2566,25 @@ def build_combined_html(site_blocks, categories, sites_config, settings, site_do
     setStatus(show ? "All new feed shown" : "All new feed hidden");
   }});
 
+  document.getElementById("toggle-clusters").addEventListener("change", function () {{
+    const show = document.getElementById("toggle-clusters").checked;
+    saveState(CLUSTERS_KEY, show);
+    applyClusters(show);
+    setStatus(show ? "Cluster view shown" : "Cluster view hidden");
+  }});
+
+  document.getElementById("btn-cluster").addEventListener("click", function () {{
+    const show = !document.getElementById("clusters") ||
+      document.getElementById("clusters").classList.contains("hidden");
+    saveState(CLUSTERS_KEY, show);
+    applyClusters(show);
+    if (show) {{
+      const sec = document.getElementById("clusters");
+      if (sec) sec.scrollIntoView({{ behavior: "smooth", block: "start" }});
+    }}
+    setStatus(show ? "Cluster view shown" : "Cluster view hidden");
+  }});
+
   document.getElementById("toggle-dim-opened").addEventListener("change", function () {{
     const dim = document.getElementById("toggle-dim-opened").checked;
     saveState(DIM_OPENED_KEY, dim);
@@ -2287,6 +2693,7 @@ def build_combined_html(site_blocks, categories, sites_config, settings, site_do
     const excludeWords = currentExcludeWords();
     const siteOrder = currentSiteOrder();
     const showAllNew = document.getElementById("toggle-all-new").checked;
+    const showClusters = document.getElementById("toggle-clusters").checked;
     const dimOpened = document.getElementById("toggle-dim-opened").checked;
     const showOpenedToday = document.getElementById("toggle-opened-today").checked;
     const darkMode = document.getElementById("toggle-dark").checked;
@@ -2308,6 +2715,7 @@ def build_combined_html(site_blocks, categories, sites_config, settings, site_do
     nextSettings.exclude_words = excludeWords;
     nextSettings.site_order = siteOrder;
     nextSettings.show_all_new = showAllNew;
+    nextSettings.show_clusters = showClusters;
     nextSettings.dim_opened = dimOpened;
     nextSettings.show_opened_today = showOpenedToday;
     nextSettings.dark_mode = darkMode;

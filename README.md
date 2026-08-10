@@ -120,6 +120,7 @@ C:\source\repos\NewsExtract\
 │   ├── sites.json         # Per-site enabled flags + metadata
 │   ├── settings.json      # Global UI defaults (order, filters, theme, …)
 │   ├── categories.json    # Category labels, colours, URL match patterns
+│   ├── cluster_ignore_words.json  # ~1000 ignore words per language for Cluster view
 │   └── headlines_cache.json # Seen hrefs + last display snapshot (created on --update)
 ├── version.json           # Local app version + release metadata
 ├── headlines.html         # Generated dashboard
@@ -166,6 +167,7 @@ Global UI defaults, for example:
 | `show_external` | Show off-site / external article links |
 | `only_new` | Hide “previously seen” blocks |
 | `show_all_new` | Show the combined “All new” section |
+| `show_clusters` | Show the keyword cluster view (also toggled by the Cluster header button) |
 | `dim_opened` | Dim headlines you’ve opened |
 | `show_opened_today` | Show the “Opened today” panel |
 | `dark_mode` | Start in dark theme |
@@ -179,6 +181,14 @@ Global UI defaults, for example:
 Toggling sites/languages/filters in the HTML Settings panel updates the browser. **Save for next run** downloads JSON you can drop back into the project folder so the next script run picks them up.
 
 If `config/settings.json` is missing but an older `config/sites.json` still has a `_settings` block, that block is migrated automatically on the next run.
+
+### `config/cluster_ignore_words.json`
+
+About **1000 ignore words per language** (`en`, `da`) used by Cluster view. After these are stripped from titles and URL paths, remaining tokens are used to group related headlines. Regenerate with:
+
+```bash
+python tools/build_cluster_ignore_words.py
+```
 
 ### `config/categories.json`
 
