@@ -73,15 +73,18 @@ parsers/
     dk/                    # Denmark (language: da)
       country.json
       tv2.yaml
-      bt.yaml
+      …
+    se/                    # Sweden (language: sv)
+      country.json
+      …
+    no/                    # Norway (language: no)
+      country.json
       …
     gb/                    # United Kingdom (language: en)
       country.json
-      guardian.yaml
       …
     us/                    # United States (language: en)
       country.json
-      nytimes.yaml
       …
   engine.py                # loads grammar, runs strategies, returns candidates
   recipes.py               # named title/link transforms (Python, shared, versioned)

@@ -1,0 +1,20 @@
+id: vg
+name: VG
+language: "no"
+url: https://www.vg.no/
+domains:
+  - vg.no
+
+strategies:
+  - type: link_scan
+    href_must:
+      - "/i/[A-Za-z0-9]+/"
+    href_skip:
+      - "/tag/"
+      - "/kategori/"
+      - "/login"
+      - "/i/vg_"
+    min_length: 18
+    title:
+      - { from: self, select: "h2, h3", score: 9 }
+      - { from: self, recipe: text, score: 6 }

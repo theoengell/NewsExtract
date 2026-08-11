@@ -20,7 +20,27 @@
     "fyens",
     "sn",
     "newz",
-    "slashdot"
+    "slashdot",
+    "abcnyheter",
+    "adressa",
+    "aftenposten",
+    "btno",
+    "dagbladet",
+    "e24",
+    "nettavisen",
+    "nrk",
+    "tv2no",
+    "vg",
+    "aftonbladet",
+    "di",
+    "dn",
+    "expressen",
+    "gp",
+    "omni",
+    "svd",
+    "svt",
+    "sydsvenskan",
+    "tv4"
   ],
   "show_all_new": true,
   "dim_opened": true,
@@ -31,7 +51,9 @@
   "cluster_min_size": 2,
   "languages": {
     "da": true,
-    "en": true
+    "en": true,
+    "no": true,
+    "sv": true
   },
   "exclude_words": ""
 }

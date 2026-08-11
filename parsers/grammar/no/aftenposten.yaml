@@ -1,0 +1,24 @@
+id: aftenposten
+name: Aftenposten
+language: "no"
+url: https://www.aftenposten.no/nyheter
+domains:
+  - aftenposten.no
+
+strategies:
+  - type: link_scan
+    href_must:
+      - "/i/[A-Za-z0-9]+/"
+    href_skip:
+      - "/dagens-hjernetrim"
+      - "/ordnettet"
+      - "/2048-spillet"
+      - "/doedsannonser"
+      - "/nekrolog/"
+      - "/login"
+      - "/fordel"
+      - "/leste-artikler"
+    min_length: 20
+    title:
+      - { from: self, select: "h2, h3", score: 9 }
+      - { from: self, recipe: text, score: 6 }

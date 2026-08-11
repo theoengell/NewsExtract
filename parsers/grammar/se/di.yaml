@@ -1,0 +1,25 @@
+id: di
+name: Dagens industri
+language: sv
+url: https://www.di.se/
+domains:
+  - di.se
+
+strategies:
+  - type: link_scan
+    match: ".teaser a[href], a.teaser[href], article .teaser__title a[href]"
+    href_must:
+      - "/nyheter/"
+      - "/live/"
+      - "/debatt/"
+      - "/analys/"
+      - "/ledare/"
+    href_skip:
+      - "/konto/"
+      - "/login"
+      - "/nyheter/?$"
+      - "/bors/nyheter/?$"
+    min_length: 18
+    title:
+      - { from: self, select: "h2, h3, .teaser__title", score: 9 }
+      - { from: self, recipe: text, score: 6 }

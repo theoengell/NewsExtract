@@ -1,0 +1,23 @@
+id: expressen
+name: Expressen
+language: sv
+url: https://www.expressen.se/
+domains:
+  - expressen.se
+
+strategies:
+  - type: link_scan
+    match: ".teaser a[href]"
+    href_skip:
+      - "/teckna/"
+      - "/konto/"
+      - "/login"
+      - "/nyhetsbrev"
+      - "/podd/"
+      - "/tv-start/"
+      - "/senaste-nytt/$"
+      - "/expressen-direkt/$"
+    min_length: 22
+    title:
+      - { from: self, select: "h2, h3", score: 9 }
+      - { from: self, recipe: text, score: 6 }

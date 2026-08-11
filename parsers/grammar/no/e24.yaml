@@ -1,0 +1,27 @@
+id: e24
+name: E24
+language: "no"
+url: https://e24.no/
+domains:
+  - e24.no
+
+strategies:
+  - type: link_scan
+    href_must:
+      - "/i/[A-Za-z0-9]+/"
+    href_skip:
+      - "/ledige-stillinger"
+      - "/kredittkort"
+      - "/login"
+    min_length: 18
+    text_drop_prefix:
+      - "Pluss-ikon"
+    title:
+      - { from: self, recipe: text, score: 8 }
+      - { from: self, select: "h2, h3", score: 6 }
+  - type: link_scan
+    href_must:
+      - "/bors/nyheter/a/\\d+"
+    min_length: 15
+    title:
+      - { from: self, recipe: text, score: 7 }

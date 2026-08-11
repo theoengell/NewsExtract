@@ -1,0 +1,25 @@
+id: nrk
+name: NRK
+language: "no"
+url: https://www.nrk.no/
+domains:
+  - nrk.no
+
+strategies:
+  - type: link_scan
+    href_must:
+      - "-1\\.\\d{5,}"
+    href_skip:
+      - "/emne/"
+      - "resultater\\.nrk\\.no"
+      - "/former-1\\."
+      - "/tvers-1\\."
+      - "/quiz-1\\."
+    min_length: 22
+    text_drop_prefix:
+      - "Merkelapp: SISTE"
+      - "Merkelapp: FØLG OG HØR"
+      - "Merkelapp:"
+    title:
+      - { from: self, select: "h2, h3", score: 9 }
+      - { from: self, recipe: text, score: 6 }

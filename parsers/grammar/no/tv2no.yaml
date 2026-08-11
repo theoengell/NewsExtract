@@ -1,0 +1,22 @@
+id: tv2no
+name: TV 2
+language: "no"
+url: https://www.tv2.no/
+domains:
+  - tv2.no
+
+strategies:
+  - type: link_scan
+    match: "a.article__link[href], a[href]"
+    href_must:
+      - "/[a-z0-9-]+/[a-z0-9-]+/\\d{6,}/?"
+    href_skip:
+      - "/livesport/"
+      - "/overganger"
+      - "/kompani"
+      - "/videoserier"
+      - "/menu"
+    min_length: 18
+    title:
+      - { from: self, select: "h2, h3", score: 9 }
+      - { from: self, recipe: text, score: 6 }

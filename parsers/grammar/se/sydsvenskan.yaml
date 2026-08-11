@@ -1,0 +1,21 @@
+id: sydsvenskan
+name: Sydsvenskan
+language: sv
+url: https://www.sydsvenskan.se/
+domains:
+  - sydsvenskan.se
+
+strategies:
+  - type: link_scan
+    match: ".teaser-j2 a[href], h2 a[href], h3 a[href]"
+    href_skip:
+      - "/direkt/?$"
+      - "/valkompass/"
+      - "/installningar/"
+      - "/konto/"
+      - "/login"
+      - "/prenumerera"
+    min_length: 20
+    title:
+      - { from: self, select: "h2, h3", score: 9 }
+      - { from: self, recipe: text, score: 6 }

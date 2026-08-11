@@ -1,0 +1,22 @@
+id: svt
+name: SVT Nyheter
+language: sv
+url: https://www.svt.se/nyheter
+domains:
+  - svt.se
+
+strategies:
+  - type: link_scan
+    match: "a[class*='Teaser'][href], article a[href]"
+    href_must:
+      - "/nyheter/"
+    href_skip:
+      - "/nyheter/lokalt/?$"
+      - "/nyheter/?$"
+      - "/nyheter/lokalt/[a-z]+/?$"
+    min_length: 20
+    text_drop_regex:
+      - "^\\d+\\s*min\\s+"
+    title:
+      - { from: self, select: "h2, h3, [class*='TeaserHeadline']", score: 9 }
+      - { from: self, recipe: text, score: 6 }

@@ -1,6 +1,6 @@
 # NewsExtract
 
-**NewsExtract** is a local headline dashboard for Danish and English news front pages. It fetches only the front page of each enabled site, extracts headlines, tracks what you’ve already seen, and opens a single HTML page you can filter, collapse, and personalise in the browser.
+**NewsExtract** is a local headline dashboard for Danish, Swedish, Norwegian, and English news front pages. It fetches only the front page of each enabled site, extracts headlines, tracks what you’ve already seen, and opens a single HTML page you can filter, collapse, and personalise in the browser.
 
 Only front pages are read. Preferences are stored in browser cookies / `localStorage` (and optionally in project JSON files when you export settings).
 
@@ -12,7 +12,7 @@ Created by **Theo Engell**.
 
 ## Features
 
-- **Multi-site parsers** — Berlingske, BT, Børsen, DR, Ekstra Bladet, Fyens Stiftstidende, Jyllands-Posten, Newz, Politiken, Sjællandske Nyheder, Slashdot, TV 2 Nyheder, Weekendavisen, The Guardian, The New York Times, The Observer (YAML grammars under `parsers/grammar/`)
+- **Multi-site parsers** — Danish, Swedish, Norwegian, UK, and US outlets (YAML grammars under `parsers/grammar/<country>/`)
 - **Grammar engine** — one interpreter for all sites; see [documentation/tech/grammar-based-parsers.md](documentation/tech/grammar-based-parsers.md)
 - **Cache-first** — default run rebuilds the dashboard from `config/headlines_cache.json` with no network; use `--update` to fetch fresh pages
 - **New vs previously seen** — compares against the cache so you can scan what’s changed since last update
@@ -22,7 +22,7 @@ Created by **Theo Engell**.
   - **All new** unified feed across sites (also click to collapse/expand)
   - **Opened today** list; dim opened links
   - Category colouring from URL path patterns
-  - Languages (Danish / English) on/off
+  - Languages (Danish / Swedish / Norwegian / English) on/off
   - Drag-to-reorder sites in Settings
   - Keyword **bold** highlights and **exclude** filters
   - Pagination for “Previously seen” (Previous / Next + page label)
@@ -77,10 +77,13 @@ The script writes `headlines.html` and opens it in your default browser (unless 
 | `python newsextract.py --with-links` | Print title + URL (implies verbose) |
 | `python newsextract.py --clean` | Remove cache, HTML, and downloaded site logos |
 | `python newsextract.py --check-update` | Check for newer version on GitHub and exit |
-| `python sitetoggle.py` | Interactive on/off for sites in `config/sites.json` |
+| `python sitetoggle.py` | Interactive on/off for sites, countries, and languages |
 | `python sitetoggle.py bt dr` | Toggle those site ids |
 | `python sitetoggle.py on guardian` | Enable a site |
 | `python sitetoggle.py off bt` | Disable a site |
+| `python sitetoggle.py off se` | Disable all sites in Sweden |
+| `python sitetoggle.py on lang:en` | Enable English language + all English sites |
+| `python sitetoggle.py off danish` | Disable Danish language + all Danish sites |
 | `python newsextract.py --parser-engine both --only tv2` | Compare Python vs grammar extract |
 
 ### Useful options
@@ -108,7 +111,7 @@ Every run prints `Elapsed: X.XXs` on stderr when finished.
 ```text
 C:\source\repos\NewsExtract\
 ├── newsextract.py         # Thin CLI entry (`python newsextract.py`)
-├── sitetoggle.py          # Toggle sites on/off in config/sites.json
+├── sitetoggle.py          # Toggle sites / countries / languages on/off
 ├── nex/                   # App library (fetch, config, cache, pipeline, HTML)
 │   ├── cli.py             # argparse + run orchestration
 │   ├── fetch.py           # HTTP + site logo download

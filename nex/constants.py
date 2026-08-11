@@ -124,10 +124,12 @@ DEFAULT_HEADERS = {
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
         "(KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36"
     ),
-    "Accept-Language": "da,en-US;q=0.9,en;q=0.8",
+    "Accept-Language": "da,sv,nb,no,en-US;q=0.9,en;q=0.8",
 }
 
 KNOWN_LANGUAGES = {
     "da": "Danish",
     "en": "English",
+    "sv": "Swedish",
+    "no": "Norwegian",
 }

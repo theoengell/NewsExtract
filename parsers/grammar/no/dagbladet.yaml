@@ -1,0 +1,24 @@
+id: dagbladet
+name: Dagbladet
+language: "no"
+url: https://www.dagbladet.no/
+domains:
+  - dagbladet.no
+
+strategies:
+  - type: link_scan
+    href_must:
+      - "/[a-z0-9-]+/[a-z0-9-]+/\\d{7,}"
+    href_skip:
+      - "/kjop-pluss"
+      - "/pluss/"
+      - "/annonse"
+      - "pxf\\.io"
+      - "/tema/"
+    min_length: 18
+    text_drop_prefix:
+      - "Pluss"
+      - "Annonsørinnhold"
+    title:
+      - { from: self, select: "h2, h3", score: 9 }
+      - { from: self, recipe: text, score: 6 }

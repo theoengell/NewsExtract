@@ -27,5 +27,5 @@ def test_country_meta_files():
     for country_dir in countries:
         meta = load_country_meta(country_dir)
         assert meta["country"] == country_dir.name.lower()
-        assert meta["language"] in {"da", "en"}
+        assert meta["language"] in {"da", "en", "sv", "no"}
         assert meta["name"]

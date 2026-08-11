@@ -1,0 +1,19 @@
+id: nettavisen
+name: Nettavisen
+language: "no"
+url: https://www.nettavisen.no/
+domains:
+  - nettavisen.no
+
+strategies:
+  - type: link_scan
+    match: ".b-teaser-container a[href], a[class*='teaser'][href]"
+    href_must:
+      - "/s/\\d+-\\d+-\\d+"
+    href_skip:
+      - "/nyhetsbrev"
+      - "/tag/"
+    min_length: 18
+    title:
+      - { from: self, select: "h2, h3", score: 9 }
+      - { from: self, recipe: text, score: 6 }

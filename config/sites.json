@@ -99,5 +99,125 @@
     "name": "Slashdot",
     "url": "https://slashdot.org/",
     "language": "en"
+  },
+  "abcnyheter": {
+    "enabled": true,
+    "name": "ABC Nyheter",
+    "url": "https://www.abcnyheter.no/",
+    "language": "no"
+  },
+  "adressa": {
+    "enabled": true,
+    "name": "Adresseavisen",
+    "url": "https://www.adressa.no/nyheter",
+    "language": "no"
+  },
+  "aftenposten": {
+    "enabled": true,
+    "name": "Aftenposten",
+    "url": "https://www.aftenposten.no/nyheter",
+    "language": "no"
+  },
+  "btno": {
+    "enabled": true,
+    "name": "Bergens Tidende",
+    "url": "https://www.bt.no/",
+    "language": "no"
+  },
+  "dagbladet": {
+    "enabled": true,
+    "name": "Dagbladet",
+    "url": "https://www.dagbladet.no/",
+    "language": "no"
+  },
+  "e24": {
+    "enabled": true,
+    "name": "E24",
+    "url": "https://e24.no/",
+    "language": "no"
+  },
+  "nettavisen": {
+    "enabled": true,
+    "name": "Nettavisen",
+    "url": "https://www.nettavisen.no/",
+    "language": "no"
+  },
+  "nrk": {
+    "enabled": true,
+    "name": "NRK",
+    "url": "https://www.nrk.no/",
+    "language": "no"
+  },
+  "tv2no": {
+    "enabled": true,
+    "name": "TV 2",
+    "url": "https://www.tv2.no/",
+    "language": "no"
+  },
+  "vg": {
+    "enabled": true,
+    "name": "VG",
+    "url": "https://www.vg.no/",
+    "language": "no"
+  },
+  "aftonbladet": {
+    "enabled": true,
+    "name": "Aftonbladet",
+    "url": "https://www.aftonbladet.se/",
+    "language": "sv"
+  },
+  "di": {
+    "enabled": true,
+    "name": "Dagens industri",
+    "url": "https://www.di.se/",
+    "language": "sv"
+  },
+  "dn": {
+    "enabled": true,
+    "name": "Dagens Nyheter",
+    "url": "https://www.dn.se/",
+    "language": "sv"
+  },
+  "expressen": {
+    "enabled": true,
+    "name": "Expressen",
+    "url": "https://www.expressen.se/",
+    "language": "sv"
+  },
+  "gp": {
+    "enabled": true,
+    "name": "Göteborgs-Posten",
+    "url": "https://www.gp.se/",
+    "language": "sv"
+  },
+  "omni": {
+    "enabled": true,
+    "name": "Omni",
+    "url": "https://omni.se/",
+    "language": "sv"
+  },
+  "svd": {
+    "enabled": true,
+    "name": "Svenska Dagbladet",
+    "url": "https://www.svd.se/",
+    "language": "sv"
+  },
+  "svt": {
+    "enabled": true,
+    "name": "SVT Nyheter",
+    "url": "https://www.svt.se/nyheter",
+    "language": "sv"
+  },
+  "sydsvenskan": {
+    "enabled": true,
+    "name": "Sydsvenskan",
+    "url": "https://www.sydsvenskan.se/",
+    "language": "sv"
+  },
+  "tv4": {
+    "enabled": true,
+    "name": "TV4 Nyheterna",
+    "url": "https://www.tv4.se/",
+    "language": "sv"
   }
 }

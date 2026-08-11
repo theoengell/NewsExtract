@@ -1,0 +1,19 @@
+id: omni
+name: Omni
+language: sv
+url: https://omni.se/
+domains:
+  - omni.se
+
+strategies:
+  - type: link_scan
+    href_must:
+      - "/a/[A-Za-z0-9]+"
+    href_skip:
+      - "^/t/"
+      - "/login"
+      - "/konto"
+    min_length: 20
+    title:
+      - { from: self, select: "h2, h3", score: 9 }
+      - { from: self, recipe: text, score: 6 }

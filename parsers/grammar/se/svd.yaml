@@ -1,0 +1,21 @@
+id: svd
+name: Svenska Dagbladet
+language: sv
+url: https://www.svd.se/
+domains:
+  - svd.se
+
+strategies:
+  - type: link_scan
+    href_must:
+      - "/a/[A-Za-z0-9]+/"
+    href_skip:
+      - "/login"
+      - "/minsida/"
+      - "/onboarding"
+      - "/special/sparat"
+      - "/tipsa-svd"
+    min_length: 18
+    title:
+      - { from: self, select: "h2, h3", score: 9 }
+      - { from: self, recipe: text, score: 5 }

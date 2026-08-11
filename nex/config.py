@@ -490,13 +490,14 @@ def load_cluster_ignore_words(path=None):
     """
     Load per-language ignore-word lists for clustering.
 
-    Returns dict {"en": [str, ...], "da": [str, ...]} with ~1000 words each.
-    Missing/invalid files yield empty lists (clustering still works, just noisier).
+    Returns dict of language code -> [str, ...] with ~1000 words each
+    (typically en/da/sv/no). Missing/invalid files yield empty lists
+    (clustering still works, just noisier).
     """
-    from .constants import DEFAULT_CLUSTER_IGNORE_FILE
+    from .constants import DEFAULT_CLUSTER_IGNORE_FILE, KNOWN_LANGUAGES
 
     path = path or DEFAULT_CLUSTER_IGNORE_FILE
-    empty = {"en": [], "da": []}
+    empty = {code: [] for code in KNOWN_LANGUAGES}
     if not path or not os.path.exists(path):
         print(
             f"Warning: cluster ignore words not found at {path}.",
@@ -512,8 +513,23 @@ def load_cluster_ignore_words(path=None):
     if not isinstance(data, dict):
         return empty
 
+    lang_keys = [
+        code
+        for code in list(KNOWN_LANGUAGES) + [k for k in data if k != "description"]
+        if isinstance(code, str) and code != "description"
+    ]
+    # De-dupe, preserve order
+    seen_langs = set()
+    langs = []
+    for code in lang_keys:
+        code = code.strip().lower()
+        if not code or code in seen_langs:
+            continue
+        seen_langs.add(code)
+        langs.append(code)
+
     out = {}
-    for lang in ("en", "da"):
+    for lang in langs:
         raw = data.get(lang, [])
         if not isinstance(raw, list):
             raw = []

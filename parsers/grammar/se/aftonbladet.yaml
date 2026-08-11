@@ -1,0 +1,25 @@
+id: aftonbladet
+name: Aftonbladet
+language: sv
+url: https://www.aftonbladet.se/
+domains:
+  - aftonbladet.se
+
+strategies:
+  - type: link_scan
+    href_must:
+      - "/a/[A-Za-z0-9]+/"
+    href_skip:
+      - "/omaftonbladet/"
+      - "/minsida/"
+      - "/profile-pages/"
+      - "/kampanj/"
+      - "/kop/"
+      - "/tagg/"
+      - "/a/LOlQ4/"
+      - "/aftonbladet-direkt"
+      - "/direkt-radio-aftonbladet"
+    min_length: 22
+    title:
+      - { from: self, select: "h2, h3", score: 9 }
+      - { from: self, recipe: text, score: 6 }

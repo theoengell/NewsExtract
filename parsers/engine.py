@@ -701,13 +701,15 @@ def extract(site: dict, soup, base_url: str):
 class GrammarSite:
     """Module-like facade so newsextract can treat grammars like parsers."""
 
-    def __init__(self, data: dict):
+    def __init__(self, data: dict, country: str = "", country_name: str = ""):
         self._data = data
         self.SITE_ID = data["id"]
         self.NAME = data["name"]
         self.DEFAULT_URL = data["url"]
         self.DOMAINS = tuple(data.get("domains") or ())
         self.LANGUAGE = str(data.get("language") or "da").strip().lower() or "da"
+        self.COUNTRY = str(country or data.get("country") or "").strip().lower()
+        self.COUNTRY_NAME = str(country_name or "").strip() or self.COUNTRY
         self.FETCH_TIMEOUT = int(data.get("fetch_timeout") or 15)
 
     def extract(self, soup, base_url: str):
@@ -715,7 +717,14 @@ class GrammarSite:
 
 
 def discover_grammar_sites(grammar_dir: str | Path | None = None) -> list[GrammarSite]:
-    return [GrammarSite(data) for data in load_all(grammar_dir)]
+    sites = []
+    for path, meta in iter_grammar_paths(grammar_dir):
+        lang = meta.get("language") if isinstance(meta, dict) else None
+        data = load_site(path, expected_language=lang)
+        country = meta.get("country", "") if isinstance(meta, dict) else ""
+        country_name = meta.get("name", "") if isinstance(meta, dict) else ""
+        sites.append(GrammarSite(data, country=country, country_name=country_name))
+    return sites
 
 
 def get_grammar_by_id(site_id: str, grammar_dir: str | Path | None = None) -> GrammarSite | None:

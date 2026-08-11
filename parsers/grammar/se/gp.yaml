@@ -1,0 +1,20 @@
+id: gp
+name: Göteborgs-Posten
+language: sv
+url: https://www.gp.se/
+domains:
+  - gp.se
+
+strategies:
+  - type: link_scan
+    match: "article a[href], a[href*='.']"
+    href_must:
+      - "\\.[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}"
+    href_skip:
+      - "/gp-direkt"
+      - "/konto/"
+      - "/login"
+    min_length: 18
+    title:
+      - { from: self, select: "h2, h3", score: 9 }
+      - { from: self, recipe: text, score: 6 }

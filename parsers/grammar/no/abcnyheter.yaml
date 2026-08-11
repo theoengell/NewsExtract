@@ -1,0 +1,18 @@
+id: abcnyheter
+name: ABC Nyheter
+language: "no"
+url: https://www.abcnyheter.no/
+domains:
+  - abcnyheter.no
+
+strategies:
+  - type: link_scan
+    href_must:
+      - "/[a-z0-9-]+/[a-z0-9-]+/\\d{6,}"
+    href_skip:
+      - "/om-oss/"
+      - "/personvern"
+    min_length: 18
+    title:
+      - { from: self, select: "h2, h3", score: 9 }
+      - { from: self, recipe: text, score: 6 }

@@ -1,0 +1,20 @@
+id: adressa
+name: Adresseavisen
+language: "no"
+url: https://www.adressa.no/nyheter
+domains:
+  - adressa.no
+
+strategies:
+  - type: link_scan
+    href_must:
+      - "/i/[A-Za-z0-9]+/"
+    href_skip:
+      - "/kontakt-redaksjonen"
+      - "/adresseavisens-rettigheter"
+      - "/login"
+      - "mn24\\.no"
+    min_length: 20
+    title:
+      - { from: self, select: "h2, h3", score: 9 }
+      - { from: self, recipe: text, score: 6 }

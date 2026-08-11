@@ -1,0 +1,53 @@
+id: tv4
+name: TV4 Nyheterna
+language: sv
+url: https://www.tv4.se/
+domains:
+  - tv4.se
+
+strategies:
+  - type: heading_scan
+    match: "h2, h3"
+    min_length: 22
+    link:
+      - from: self
+        href_must:
+          - "/artikel/[A-Za-z0-9_-]+/"
+        href_skip:
+          - "cookie"
+          - "annonsera"
+          - "anvandarvillkor"
+          - "publicistisk"
+          - "ansvariga-utgivare"
+          - "klander"
+          - "integritet"
+      - from: ancestor
+        max_depth: 4
+        href_must:
+          - "/artikel/[A-Za-z0-9_-]+/"
+        href_skip:
+          - "cookie"
+          - "annonsera"
+          - "anvandarvillkor"
+          - "publicistisk"
+          - "ansvariga-utgivare"
+          - "klander"
+          - "integritet"
+    title:
+      recipe: text
+    score: 9
+  - type: link_scan
+    href_must:
+      - "/artikel/[A-Za-z0-9_-]+/"
+    href_skip:
+      - "cookie"
+      - "annonsera"
+      - "anvandarvillkor"
+      - "publicistisk"
+      - "ansvariga-utgivare"
+      - "klander"
+      - "integritet"
+    min_length: 28
+    title:
+      - { from: self, select: "h2, h3", score: 9 }
+      - { from: self, recipe: text, score: 5 }
