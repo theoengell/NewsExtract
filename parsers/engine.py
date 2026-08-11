@@ -1,8 +1,9 @@
 """
 Grammar engine: load site YAML and extract headline candidates.
 
-Site files live in parsers/grammar/*.yaml and are validated against
-parsers/schema/site.schema.json when jsonschema is available.
+Site files live in parsers/grammar/<country>/*.yaml (e.g. dk/, gb/, us/),
+with a country.json in each folder for country + language metadata.
+Validated against parsers/schema/site.schema.json when jsonschema is available.
 """
 
 from __future__ import annotations
@@ -24,9 +25,11 @@ except ImportError as e:  # pragma: no cover
 
 GRAMMAR_DIR = Path(__file__).resolve().parent / "grammar"
 SCHEMA_PATH = Path(__file__).resolve().parent / "schema" / "site.schema.json"
+COUNTRY_META_FILENAME = "country.json"
 
 _SCHEMA_CACHE = None
 _COMPILED_RE_CACHE: dict[str, re.Pattern] = {}
+_COUNTRY_META_CACHE: dict[str, dict] = {}
 
 
 class GrammarError(ValueError):
@@ -101,7 +104,51 @@ def _validate_recipes(data: dict, label: str) -> None:
             raise GrammarError(f"{label}: {e}") from e
 
 
-def load_site(path: str | Path) -> dict:
+def load_country_meta(country_dir: str | Path) -> dict:
+    """
+    Load parsers/grammar/<country>/country.json.
+
+    Required fields: country (code), name, language.
+    """
+    country_dir = Path(country_dir)
+    path = country_dir / COUNTRY_META_FILENAME
+    cache_key = str(path.resolve()) if path.exists() else str(path)
+    cached = _COUNTRY_META_CACHE.get(cache_key)
+    if cached is not None:
+        return cached
+
+    if not path.is_file():
+        raise GrammarError(f"{country_dir}: missing {COUNTRY_META_FILENAME}")
+
+    try:
+        with open(path, encoding="utf-8") as f:
+            data = json.load(f)
+    except (OSError, json.JSONDecodeError) as e:
+        raise GrammarError(f"{path}: {e}") from e
+
+    if not isinstance(data, dict):
+        raise GrammarError(f"{path}: root must be a JSON object")
+
+    country = str(data.get("country") or "").strip().lower()
+    name = str(data.get("name") or "").strip()
+    language = str(data.get("language") or "").strip().lower()
+    if not country:
+        raise GrammarError(f"{path}: missing required field 'country'")
+    if not name:
+        raise GrammarError(f"{path}: missing required field 'name'")
+    if not language:
+        raise GrammarError(f"{path}: missing required field 'language'")
+    if country_dir.name.lower() != country:
+        raise GrammarError(
+            f"{path}: country '{country}' must match folder name '{country_dir.name}'"
+        )
+
+    meta = {"country": country, "name": name, "language": language, "path": path}
+    _COUNTRY_META_CACHE[cache_key] = meta
+    return meta
+
+
+def load_site(path: str | Path, expected_language: str | None = None) -> dict:
     path = Path(path)
     with open(path, encoding="utf-8") as f:
         data = yaml.safe_load(f)
@@ -113,19 +160,61 @@ def load_site(path: str | Path) -> dict:
         raise GrammarError(
             f"{path}: id '{data['id']}' must match filename stem '{path.stem}'"
         )
+    if expected_language:
+        lang = str(data.get("language") or "").strip().lower()
+        if lang != expected_language:
+            raise GrammarError(
+                f"{path}: language '{lang or '(missing)'}' must match "
+                f"country language '{expected_language}'"
+            )
     validate_site(data, path)
     return data
 
 
-def load_all(grammar_dir: str | Path | None = None) -> list[dict]:
+def iter_country_dirs(grammar_dir: str | Path | None = None):
+    """Yield country folders that contain country.json."""
     directory = Path(grammar_dir) if grammar_dir else GRAMMAR_DIR
     if not directory.is_dir():
-        return []
-    sites = []
+        return
+    for child in sorted(directory.iterdir()):
+        if not child.is_dir() or child.name.startswith("_"):
+            continue
+        if (child / COUNTRY_META_FILENAME).is_file():
+            yield child
+
+
+def iter_grammar_paths(grammar_dir: str | Path | None = None):
+    """
+    Yield (path, country_meta) for each site grammar.
+
+    Layout: parsers/grammar/<country>/*.yaml with country.json in each folder.
+    Falls back to a flat parsers/grammar/*.yaml layout if no country folders exist.
+    """
+    directory = Path(grammar_dir) if grammar_dir else GRAMMAR_DIR
+    if not directory.is_dir():
+        return
+
+    country_dirs = list(iter_country_dirs(directory))
+    if country_dirs:
+        for country_dir in country_dirs:
+            meta = load_country_meta(country_dir)
+            for path in sorted(country_dir.glob("*.yaml")):
+                if path.name.startswith("_"):
+                    continue
+                yield path, meta
+        return
+
     for path in sorted(directory.glob("*.yaml")):
         if path.name.startswith("_"):
             continue
-        sites.append(load_site(path))
+        yield path, None
+
+
+def load_all(grammar_dir: str | Path | None = None) -> list[dict]:
+    sites = []
+    for path, meta in iter_grammar_paths(grammar_dir):
+        lang = meta.get("language") if isinstance(meta, dict) else None
+        sites.append(load_site(path, expected_language=lang))
     return sites
 
 
@@ -135,11 +224,16 @@ def validate_all(grammar_dir: str | Path | None = None) -> list[str]:
     errors = []
     if not directory.is_dir():
         return [f"Grammar directory missing: {directory}"]
-    for path in sorted(directory.glob("*.yaml")):
-        if path.name.startswith("_"):
-            continue
+    try:
+        country_dirs = list(iter_country_dirs(directory))
+        for country_dir in country_dirs:
+            load_country_meta(country_dir)
+    except GrammarError as e:
+        errors.append(str(e))
+    for path, meta in iter_grammar_paths(directory):
+        lang = meta.get("language") if isinstance(meta, dict) else None
         try:
-            load_site(path)
+            load_site(path, expected_language=lang)
         except GrammarError as e:
             errors.append(str(e))
         except Exception as e:  # noqa: BLE001 — surface any load failure
@@ -679,7 +773,7 @@ def main(argv=None):
             for err in errors:
                 print(err, file=sys.stderr)
             return 1
-        n = len(list(GRAMMAR_DIR.glob("*.yaml"))) if GRAMMAR_DIR.is_dir() else 0
+        n = len(list(iter_grammar_paths())) if GRAMMAR_DIR.is_dir() else 0
         print(f"OK: {n} grammar file(s) validated")
         return 0
     print(f"Unknown command: {argv[0]}", file=sys.stderr)

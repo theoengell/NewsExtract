@@ -93,7 +93,7 @@ def extract_from_site(mod, min_len, max_len, limit=None, url=None, parser_engine
     if not candidates:
         print(
             f"Warning: {getattr(mod, 'SITE_ID', '?')} returned 0 raw candidates — "
-            f"check parsers/grammar/{getattr(mod, 'SITE_ID', 'site')}.yaml selectors",
+            f"check parsers/grammar/<country>/{getattr(mod, 'SITE_ID', 'site')}.yaml selectors",
             file=sys.stderr,
         )
     candidates = filter_by_length(candidates, min_len, max_len)

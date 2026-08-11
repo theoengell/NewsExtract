@@ -70,9 +70,19 @@ Declarative scraping is a well-trodden path. Useful references, not recommendati
 ```
 parsers/
   grammar/                 # data only — no extract() code
-    tv2.yaml
-    bt.yaml
-    …
+    dk/                    # Denmark (language: da)
+      country.json
+      tv2.yaml
+      bt.yaml
+      …
+    gb/                    # United Kingdom (language: en)
+      country.json
+      guardian.yaml
+      …
+    us/                    # United States (language: en)
+      country.json
+      nytimes.yaml
+      …
   engine.py                # loads grammar, runs strategies, returns candidates
   recipes.py               # named title/link transforms (Python, shared, versioned)
   base.py                  # CandidateCollector + global text hygiene (unchanged role)
@@ -258,7 +268,7 @@ strategies:
 
 ### 6.1 Load & validate
 
-1. Discover `parsers/grammar/*.yaml` (ignore `_*.yaml`).
+1. Discover `parsers/grammar/<country>/*.yaml` (folders with `country.json`; ignore `_*.yaml`). Site YAML `language` must match the country file.
 2. Validate against JSON Schema (`id`, `name`, `url`, `strategies[]` with known `type` / `recipe` enums).
 3. Build the same registry as today: `SITE_ID`, `DOMAINS`, `LANGUAGE`, `DEFAULT_URL`.
 4. Expose a module-like facade so `newsextract.py` barely changes:

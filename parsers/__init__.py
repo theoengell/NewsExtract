@@ -1,9 +1,10 @@
 """
 Site parser registry with grammar auto-discovery.
 
-Site rules live in ``parsers/grammar/<id>.yaml``. The shared engine in
-``parsers/engine.py`` interprets them. Shared DOM recipes live in
-``parsers/recipes.py``.
+Site rules live in ``parsers/grammar/<country>/<id>.yaml`` (e.g. ``dk/``,
+``gb/``, ``us/``), with ``country.json`` for country + language metadata.
+The shared engine in ``parsers/engine.py`` interprets them. Shared DOM recipes
+live in ``parsers/recipes.py``.
 """
 
 from __future__ import annotations
@@ -120,7 +121,7 @@ def extract_for_site(mod, soup, base_url: str, engine: str | None = None):
     if mode == "grammar":
         if grammar is None:
             raise UnsupportedSiteError(
-                f"No grammar for '{site_id}'. Add parsers/grammar/{site_id}.yaml"
+                f"No grammar for '{site_id}'. Add parsers/grammar/<country>/{site_id}.yaml"
             )
         return grammar.extract(soup, base_url), None
 

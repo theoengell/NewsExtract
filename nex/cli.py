@@ -205,7 +205,7 @@ def _main():
     parsers = list(PARSERS)
     if not parsers:
         print(
-            "No site parsers found in parsers/grammar/. "
+            "No site parsers found in parsers/grammar/<country>/. "
             "Add a YAML grammar with id/name/url/strategies.",
             file=sys.stderr,
         )

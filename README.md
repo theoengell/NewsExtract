@@ -136,7 +136,10 @@ C:\source\repos\NewsExtract\
 │   ├── engine.py          # YAML grammar interpreter
 │   ├── recipes.py         # Named title/link transforms
 │   ├── schema/            # JSON Schema for grammars
-│   └── grammar/           # One YAML file per site
+│   └── grammar/           # One YAML per site, under country folders
+│       ├── dk/            # country.json + Danish outlets
+│       ├── gb/
+│       └── us/
 ├── tests/                 # Schema + fixture parity tests
 ├── documentation/tech/    # Design + implementation plan
 ├── LICENSE                # GPL-3.0
@@ -149,7 +152,7 @@ C:\source\repos\NewsExtract\
 
 ### `config/sites.json`
 
-Each site key matches a grammar file stem (`parsers/grammar/<id>.yaml`):
+Each site key matches a grammar file stem (`parsers/grammar/<country>/<id>.yaml`):
 
 ```json
 "ekstrabladet": {
@@ -239,7 +242,7 @@ Browser preferences use `localStorage` keys under the `newsextract.` prefix (sit
 
 ## Adding a site parser
 
-1. Create `parsers/grammar/<site_id>.yaml` (stem = site id in `config/sites.json`).
+1. Create `parsers/grammar/<country>/<site_id>.yaml` (stem = site id in `config/sites.json`; add `country.json` in new country folders; YAML `language` must match that file).
 2. Define metadata and one or more strategies, for example:
 
 ```yaml
@@ -271,7 +274,7 @@ Shared helpers live in `parsers/base.py` (noise filtering, glued-headline cleanu
 
 ## How the pipeline works
 
-1. Discover grammars in `parsers/grammar/`
+1. Discover grammars in `parsers/grammar/<country>/`
 2. Load `config/sites.json` / `config/settings.json` / `config/categories.json` / cache
 3. If `--update`: fetch each enabled front page → grammar `extract()` → length filter → fuzzy dedupe → merge by href
 4. Compare to cache → mark new vs seen → update cache

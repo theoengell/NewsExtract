@@ -102,7 +102,7 @@ def main() -> int:
 
     refresh()
     if not PARSERS:
-        print("No site parsers found in parsers/grammar/.", file=sys.stderr)
+        print("No site parsers found in parsers/grammar/<country>/.", file=sys.stderr)
         return 1
 
     config = load_sites_config(args.sites_file, list(PARSERS))
