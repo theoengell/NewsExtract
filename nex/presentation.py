@@ -626,6 +626,7 @@ def build_combined_html(
       <span class="cluster-view-toggles" role="group" aria-label="Cluster presentation">
         <button type="button" class="btn-cluster-view" id="btn-cluster-list" aria-pressed="{list_pressed}">List</button>
         <button type="button" class="btn-cluster-view" id="btn-cluster-graph" aria-pressed="{graph_pressed}">Graph</button>
+        <button type="button" class="btn-cluster-view" id="btn-cluster-graph-fs" aria-pressed="false" title="Expand graph to fill the window">Fullscreen</button>
       </span>
     </h2>
     <div class="site-body" id="clusters-body">
@@ -636,8 +637,8 @@ def build_combined_html(
           </div>
         </div>
         <div id="clusters-graph-view" class="clusters-graph-view{graph_view_class}">
-          <canvas id="clusters-graph-canvas" width="900" height="480" aria-label="Cluster graph"></canvas>
           <p class="sites-hint" id="clusters-graph-hint">Drag nodes to rearrange. Click a node to list its articles below.</p>
+          <canvas id="clusters-graph-canvas" width="900" height="480" aria-label="Cluster graph"></canvas>
           <div id="clusters-graph-detail" class="clusters-graph-detail">
             <h3 class="cluster-label" id="clusters-graph-detail-title">Select a cluster</h3>
             <ol id="clusters-graph-articles">
@@ -1223,6 +1224,9 @@ def build_combined_html(
   .clusters-list-view.hidden {{
     display: none;
   }}
+  #clusters-graph-hint {{
+    margin: 0 0 0.45em;
+  }}
   #clusters-graph-canvas {{
     display: block;
     width: 100%;
@@ -1244,6 +1248,63 @@ def build_combined_html(
     list-style: none;
     margin: 0;
     padding: 0;
+  }}
+  section.clusters.is-fullscreen {{
+    position: fixed;
+    inset: 0;
+    z-index: 9000;
+    margin: 0;
+    padding: 0.85rem 1rem 1rem;
+    box-sizing: border-box;
+    max-width: none;
+    width: auto;
+    background: var(--bg);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }}
+  section.clusters.is-fullscreen > .site-title {{
+    flex: 0 0 auto;
+    margin-bottom: 0.55em;
+  }}
+  section.clusters.is-fullscreen > .site-body {{
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }}
+  section.clusters.is-fullscreen > .site-body > .site-body-inner {{
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }}
+  section.clusters.is-fullscreen .clusters-graph-view {{
+    flex: 1 1 auto;
+    min-height: 0;
+    margin-top: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.45em;
+  }}
+  section.clusters.is-fullscreen #clusters-graph-hint {{
+    margin: 0;
+    flex: 0 0 auto;
+  }}
+  section.clusters.is-fullscreen #clusters-graph-canvas {{
+    flex: 1 1 auto;
+    width: 100%;
+    height: auto;
+    min-height: 240px;
+  }}
+  section.clusters.is-fullscreen .clusters-graph-detail {{
+    margin-top: 0;
+    flex: 0 1 26vh;
+    min-height: 0;
+    overflow: auto;
+  }}
+  body.cluster-graph-fullscreen {{
+    overflow: hidden;
   }}
   .count-inline {{
     color: var(--muted);
@@ -2090,6 +2151,7 @@ def build_combined_html(
     const graphView = document.getElementById("clusters-graph-view");
     if (listView) listView.classList.toggle("hidden", view !== "list");
     if (graphView) graphView.classList.toggle("hidden", view !== "graph");
+    if (view !== "graph") applyClusterGraphFullscreen(false);
     if (view === "list") stopClusterGraph();
     if (clusterState) {{
       if (view === "graph") renderClusterGraph(clusterState);
@@ -2557,6 +2619,7 @@ def build_combined_html(
 
     clusterGraph = {{
       raf: 0,
+      relayout: onResize,
       cleanup: function () {{
         canvas.removeEventListener("pointerdown", onPointerDown);
         canvas.removeEventListener("pointermove", onPointerMove);
@@ -2569,6 +2632,36 @@ def build_combined_html(
     clusterGraph.raf = requestAnimationFrame(frame);
   }}
 
+  function isClusterGraphFullscreen() {{
+    const sec = document.getElementById("clusters");
+    return !!(sec && sec.classList.contains("is-fullscreen"));
+  }}
+
+  function applyClusterGraphFullscreen(on) {{
+    const sec = document.getElementById("clusters");
+    const btn = document.getElementById("btn-cluster-graph-fs");
+    const active = !!on;
+    if (sec) sec.classList.toggle("is-fullscreen", active);
+    document.body.classList.toggle("cluster-graph-fullscreen", active);
+    if (btn) {{
+      btn.setAttribute("aria-pressed", active ? "true" : "false");
+      btn.textContent = active ? "Exit fullscreen" : "Fullscreen";
+      btn.title = active
+        ? "Return graph to the page layout (Esc)"
+        : "Expand graph to fill the window";
+    }}
+    if (clusterGraph && typeof clusterGraph.relayout === "function") {{
+      // Allow flex layout to settle before measuring canvas.
+      requestAnimationFrame(function () {{
+        requestAnimationFrame(function () {{
+          if (clusterGraph && typeof clusterGraph.relayout === "function") {{
+            clusterGraph.relayout();
+          }}
+        }});
+      }});
+    }}
+  }}
+
   function applyClusters(show) {{
     const on = !!show;
     const cb = document.getElementById("toggle-clusters");
@@ -2578,7 +2671,10 @@ def build_combined_html(
     const section = document.getElementById("clusters");
     if (section) section.classList.toggle("hidden", !on);
     if (on) rebuildClusters();
-    else stopClusterGraph();
+    else {{
+      applyClusterGraphFullscreen(false);
+      stopClusterGraph();
+    }}
   }}
 
   function applyDimOpened(dim) {{
@@ -3153,6 +3249,21 @@ def build_combined_html(
     saveState("newsextract.clusterView", "graph");
     applyClusterView("graph");
     setStatus("Cluster graph view");
+  }});
+  document.getElementById("btn-cluster-graph-fs").addEventListener("click", function () {{
+    if (currentClusterView() !== "graph") {{
+      saveState("newsextract.clusterView", "graph");
+      applyClusterView("graph");
+    }}
+    const next = !isClusterGraphFullscreen();
+    applyClusterGraphFullscreen(next);
+    setStatus(next ? "Cluster graph fullscreen" : "Cluster graph windowed");
+  }});
+  document.addEventListener("keydown", function (evt) {{
+    if (evt.key !== "Escape" && evt.key !== "Esc") return;
+    if (!isClusterGraphFullscreen()) return;
+    applyClusterGraphFullscreen(false);
+    setStatus("Cluster graph windowed");
   }});
   document.getElementById("btn-cluster-min-dec").addEventListener("click", function () {{
     const n = applyClusterMinSize(currentClusterMinSize() - 1);
