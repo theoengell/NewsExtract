@@ -23,6 +23,7 @@ import parsers as parsers_pkg
 from .cache import (
     load_cache,
     load_results_from_cache,
+    resolve_site_cache_ttl,
     save_cache,
     split_new_vs_seen,
 )
@@ -332,7 +333,12 @@ def _main():
                 )
                 summary = f"{mod.NAME}: {len(results)} headlines"
             else:
-                new_results, seen_results, is_first_run = split_new_vs_seen(results, url, cache)
+                ttl_days = resolve_site_cache_ttl(
+                    settings, sites_config.get(mod.SITE_ID)
+                )
+                new_results, seen_results, is_first_run = split_new_vs_seen(
+                    results, url, cache, ttl_days=ttl_days
+                )
                 no_cache_mode = False
                 output_text, note = format_site_output(
                     results, new_results, seen_results, is_first_run, no_cache_mode, args.with_links
@@ -443,7 +449,13 @@ def _main():
             for mod in parsers
         }
         page = build_combined_html(
-            site_blocks, categories, sites_config, settings, site_domains, update_notice=update_notice
+            site_blocks,
+            categories,
+            sites_config,
+            settings,
+            site_domains,
+            update_notice=update_notice,
+            page_cache=cache,
         )
         out_path = args.html or DEFAULT_HTML_FILE
         with open(out_path, "w", encoding="utf-8") as f:

@@ -49,6 +49,8 @@
   "show_clusters": false,
   "cluster_view": "list",
   "cluster_min_size": 2,
+  "developer_mode": false,
+  "cache_ttl_days": 90,
   "languages": {
     "da": true,
     "en": true,

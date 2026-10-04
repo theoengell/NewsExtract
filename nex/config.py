@@ -9,7 +9,9 @@ import sys
 from collections import Counter
 from urllib.parse import unquote, urlparse
 
+from .cache import clamp_cache_ttl_days
 from .constants import (
+    DEFAULT_CACHE_TTL_DAYS,
     DEFAULT_CATEGORIES,
     KNOWN_LANGUAGES,
     LEGACY_COLOR_MAP_FILE,
@@ -467,6 +469,16 @@ def load_settings_config(path, parsers, sites_path=None):
     normalized_langs = normalize_languages(settings.get("languages"), available_langs)
     if settings.get("languages") != normalized_langs:
         settings["languages"] = normalized_langs
+        changed = True
+
+    if not isinstance(settings.get("developer_mode"), bool):
+        settings["developer_mode"] = False
+        changed = True
+    ttl_days = clamp_cache_ttl_days(
+        settings.get("cache_ttl_days", DEFAULT_CACHE_TTL_DAYS)
+    )
+    if settings.get("cache_ttl_days") != ttl_days:
+        settings["cache_ttl_days"] = ttl_days
         changed = True
 
     if changed or not os.path.exists(path):

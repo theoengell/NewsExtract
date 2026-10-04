@@ -20,7 +20,15 @@ from .config import (
     normalize_site_order,
     site_language,
 )
-from .constants import APP_VERSION, DEFAULT_CLUSTER_IGNORE_FILE, KNOWN_LANGUAGES
+from .cache import clamp_cache_ttl_days, snapshot_page_cache
+from .constants import (
+    APP_VERSION,
+    DEFAULT_CACHE_TTL_DAYS,
+    DEFAULT_CLUSTER_IGNORE_FILE,
+    KNOWN_LANGUAGES,
+    MAX_CACHE_TTL_DAYS,
+    MIN_CACHE_TTL_DAYS,
+)
 
 def is_external_href(href, base_url, allowed_domains=None):
     """
@@ -389,6 +397,127 @@ def _render_all_new_section(
   </section>"""
 
 
+def _json_for_script(data):
+    """JSON safe to embed in an HTML script tag."""
+    raw = json.dumps(data, ensure_ascii=False, separators=(",", ":"))
+    return (
+        raw.replace("&", "\\u0026")
+        .replace("<", "\\u003c")
+        .replace(">", "\\u003e")
+    )
+
+
+def _render_developer_section(snapshot, developer_on, cache_ttl_days):
+    """Page-cache browser and per-site life-span controls."""
+    sites = snapshot.get("sites") or []
+    total_pages = sum(len(site.get("pages") or []) for site in sites)
+    total_word = "page" if total_pages == 1 else "pages"
+    ttl_rows = []
+    site_rows = []
+    for index, site in enumerate(sites):
+        sid = str(site.get("id") or "")
+        name = html.escape(str(site.get("name") or sid or "Cache"))
+        domain = str(site.get("domain") or "")
+        count = len(site.get("pages") or [])
+        orphan = bool(site.get("orphan")) or not sid
+        if not orphan:
+            raw_ttl = site.get("ttl")
+            value = ""
+            if isinstance(raw_ttl, bool):
+                value = ""
+            elif isinstance(raw_ttl, int):
+                value = str(raw_ttl)
+            elif isinstance(raw_ttl, float):
+                value = str(int(raw_ttl))
+            mode = "custom" if value else "default"
+            ttl_rows.append(
+                f'<label class="dev-ttl-row">'
+                f'<span class="dev-ttl-name">{name}</span>'
+                f'<input type="number" class="dev-ttl-input" data-site="{html.escape(sid, quote=True)}" '
+                f'min="{MIN_CACHE_TTL_DAYS}" max="{MAX_CACHE_TTL_DAYS}" step="1" '
+                f'placeholder="{int(cache_ttl_days)}" value="{html.escape(value, quote=True)}" '
+                f'aria-label="Life-span for {name}">'
+                f'<span class="dev-ttl-unit">days</span>'
+                f'<span class="dev-ttl-mode">{mode}</span>'
+                f"</label>"
+            )
+        page_word = "page" if count == 1 else "pages"
+        bits = [f"{count:,} {page_word}"]
+        if domain:
+            bits.append(domain)
+        site_rows.append(
+            f'<button type="button" class="dev-site-open" data-index="{index}" '
+            f'data-site="{html.escape(sid, quote=True)}">'
+            f'<span class="dev-site-name">{name}</span>'
+            f'<span class="dev-site-meta">{html.escape(" · ".join(bits))}</span>'
+            f'<span class="dev-site-drop"></span>'
+            f'<span class="dev-site-action">Show pages</span>'
+            f"</button>"
+        )
+    ttl_html = "\n".join(ttl_rows) or '<p class="empty">No sites configured.</p>'
+    sites_html = "\n".join(site_rows) or '<p class="empty">No cached pages yet.</p>'
+    data_dev = "1" if developer_on else "0"
+    blob = _json_for_script(snapshot)
+    return f"""<script type="application/json" id="page-cache-data">{blob}</script>
+  <div id="developer" class="dev-screen" hidden data-dev="{data_dev}" data-ttl="{int(cache_ttl_days)}">
+    <div class="dev-screen-inner">
+      <div class="dev-screen-bar">
+        <button type="button" id="btn-dev-back">Headlines</button>
+        <h2 class="dev-screen-title">Page cache <span class="count-inline" id="dev-total">({total_pages:,} {total_word})</span></h2>
+      </div>
+      <div id="dev-home">
+        <details class="dev-fold" id="dev-fold-graph" open>
+          <summary>Whole cache</summary>
+          <p class="sites-hint">Every site’s cached pages. Each bar is one site: on the latest front page, still kept, or due to drop on the next update. Click a bar to open that site.</p>
+          <canvas id="dev-cache-graph" width="640" height="160" aria-label="Cached pages per site"></canvas>
+          <div class="dev-graph-legend">
+            <span><i class="dev-swatch on"></i>On front page</span>
+            <span><i class="dev-swatch kept"></i>Kept in cache</span>
+            <span><i class="dev-swatch drop"></i>Drops on next update</span>
+          </div>
+          <p class="sites-hint" id="dev-graph-summary"></p>
+        </details>
+        <details class="dev-fold" id="dev-fold-life">
+          <summary>Life-span</summary>
+          <p class="sites-hint">Articles stay in the cache after they leave the front page. While a page is cached, seeing it again counts as previously seen. The life-span is how long that memory lasts, measured from the last time the page was on the front page. Sites that rotate a pool of articles for several months can keep pages longer. Life-span changes apply on the next run with <code>--update</code>. Use Save for next run in Settings so <code>settings.json</code> and <code>sites.json</code> keep them.</p>
+          <div class="slider-row dev-global-ttl">
+            <label for="input-cache-ttl">Default life-span (days)</label>
+            <input type="number" id="input-cache-ttl" min="{MIN_CACHE_TTL_DAYS}" max="{MAX_CACHE_TTL_DAYS}" step="1" value="{int(cache_ttl_days)}">
+            <span class="slider-value" id="input-cache-ttl-value">{int(cache_ttl_days)} days</span>
+          </div>
+          <p class="sites-hint">Leave a site blank to use the default. A custom value is for outlets whose articles come back months later.</p>
+          <div class="dev-ttl-list" id="dev-ttl-list">
+{ttl_html}
+          </div>
+        </details>
+        <details class="dev-fold" id="dev-fold-pages">
+          <summary>Detected pages</summary>
+          <p class="sites-hint">Choose a site to open its cached articles. Each article shows how it was detected and when. “Front page” means it was seen on a fetched front page. “Before tracking” means it was already cached before detection times were stored.</p>
+          <div id="dev-sites">
+{sites_html}
+          </div>
+        </details>
+      </div>
+      <div id="dev-detail" hidden>
+        <button type="button" id="btn-dev-all-sites">All sites</button>
+        <h2 class="dev-screen-title" id="dev-detail-title"></h2>
+        <p class="sites-hint" id="dev-detail-lead"></p>
+        <div class="dev-tools">
+          <label for="dev-sort">Sort
+            <select id="dev-sort">
+              <option value="last">Last on front page</option>
+              <option value="first">First detected</option>
+              <option value="title">Headline</option>
+            </select>
+          </label>
+          <input type="search" id="dev-filter" placeholder="Filter by headline or URL" autocomplete="off" spellcheck="false">
+        </div>
+        <div id="dev-detail-panel"></div>
+      </div>
+    </div>
+  </div>"""
+
+
 def build_combined_html(
     site_blocks,
     categories,
@@ -397,6 +526,7 @@ def build_combined_html(
     site_domains,
     update_notice=None,
     cluster_ignore_path=None,
+    page_cache=None,
 ):
     """
     site_blocks: list of dicts with keys:
@@ -433,6 +563,9 @@ def build_combined_html(
         "ece", "art", "cid", "politik", "udland", "indland", "nyheder", "nyhed",
     ):
         ignore_lookup[extra] = 1
+    # Frequency lists treat these as common words; they are still useful news topics.
+    for keep in ("war", "wars"):
+        ignore_lookup.pop(keep, None)
     ignore_words_literal = json.dumps(ignore_lookup, ensure_ascii=False)
     available_langs = sorted({
         site_language(sites_config.get(b["site_id"]), b.get("language") or "da")
@@ -449,6 +582,10 @@ def build_combined_html(
     except (TypeError, ValueError):
         seen_limit = 15
     seen_limit = max(0, min(500, seen_limit))
+    developer_mode = bool(settings.get("developer_mode", False))
+    cache_ttl_days = clamp_cache_ttl_days(
+        settings.get("cache_ttl_days", DEFAULT_CACHE_TTL_DAYS)
+    )
     highlight_words_raw = settings.get("highlight_words", "")
     if isinstance(highlight_words_raw, (list, tuple)):
         highlight_words_raw = ", ".join(str(w) for w in highlight_words_raw)
@@ -637,7 +774,7 @@ def build_combined_html(
           </div>
         </div>
         <div id="clusters-graph-view" class="clusters-graph-view{graph_view_class}">
-          <p class="sites-hint" id="clusters-graph-hint">Drag nodes to rearrange. Click a node to list its articles below.</p>
+          <p class="sites-hint" id="clusters-graph-hint">Scroll to zoom. Drag nodes to rearrange. Click a node to list its articles below.</p>
           <canvas id="clusters-graph-canvas" width="900" height="480" aria-label="Cluster graph"></canvas>
           <div id="clusters-graph-detail" class="clusters-graph-detail">
             <h3 class="cluster-label" id="clusters-graph-detail-title">Select a cluster</h3>
@@ -681,11 +818,17 @@ def build_combined_html(
     opened_today_checked = " checked" if show_opened_today else ""
     dark_mode_checked = " checked" if dark_mode else ""
     clusters_checked = " checked" if show_clusters else ""
+    developer_checked = " checked" if developer_mode else ""
+    cache_snapshot = snapshot_page_cache(page_cache or {}, site_blocks, sites_config)
+    developer_section = _render_developer_section(
+        cache_snapshot, developer_mode, cache_ttl_days
+    )
     body_classes = []
     if dim_opened:
         body_classes.append("dim-opened")
     if dark_mode:
         body_classes.append("dark")
+    dev_btn_hidden = "" if developer_mode else " hidden"
     body_class_attr = f' class="{" ".join(body_classes)}"' if body_classes else ""
     sites_json_literal = json.dumps(sites_config, ensure_ascii=False)
     settings_json_literal = json.dumps(settings, ensure_ascii=False)
@@ -853,7 +996,8 @@ def build_combined_html(
   }}
   .btn-settings,
   .btn-theme,
-  .btn-cluster {{
+  .btn-cluster,
+  .btn-dev {{
     font: inherit;
     font-size: 0.9rem;
     padding: 0.4em 0.85em;
@@ -866,7 +1010,9 @@ def build_combined_html(
   }}
   .btn-settings:hover,
   .btn-theme:hover,
-  .btn-cluster:hover {{ background: var(--hover); }}
+  .btn-cluster:hover,
+  .btn-dev:hover {{ background: var(--hover); }}
+  .btn-dev[hidden] {{ display: none; }}
   .btn-cluster[aria-pressed="true"] {{
     background: var(--accent);
     border-color: var(--accent);
@@ -1120,6 +1266,193 @@ def build_combined_html(
   section.all-new.hidden,
   section.clusters.hidden,
   section.opened-today.hidden {{ display: none; }}
+  .dev-screen {{
+    position: fixed;
+    inset: 0;
+    z-index: 90;
+    overflow: auto;
+    background: var(--bg);
+    color: var(--text);
+  }}
+  .dev-screen[hidden] {{ display: none; }}
+  body.dev-open {{ overflow: hidden; }}
+  .dev-screen-inner {{
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 24px 20px 64px;
+  }}
+  .dev-screen-bar {{
+    display: flex;
+    align-items: center;
+    gap: 0.8em;
+    margin-bottom: 0.8em;
+  }}
+  .dev-screen-title {{
+    font-family: var(--font-body);
+    font-size: 1.35rem;
+    font-weight: 700;
+    margin: 0.6em 0 0.3em;
+    color: var(--text);
+  }}
+  .dev-screen-bar .dev-screen-title {{ margin: 0; }}
+  .dev-fold {{
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--panel);
+    margin: 0 0 0.7em;
+    padding: 0.15em 0.9em 0.2em;
+  }}
+  .dev-fold summary {{
+    cursor: pointer;
+    font-weight: 700;
+    padding: 0.55em 0;
+  }}
+  .dev-fold:not([open]) summary {{ padding-bottom: 0.55em; }}
+  #dev-cache-graph {{
+    width: 100%;
+    height: auto;
+    display: block;
+  }}
+  .dev-graph-legend {{
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35em 1em;
+    margin: 0.45em 0 0.2em;
+    color: var(--muted);
+    font-size: 0.82rem;
+  }}
+  .dev-swatch {{
+    display: inline-block;
+    width: 0.75em;
+    height: 0.75em;
+    border-radius: 2px;
+    margin-right: 0.35em;
+    vertical-align: -0.05em;
+  }}
+  .dev-swatch.on {{ background: var(--accent); }}
+  .dev-swatch.kept {{ background: #80cbc4; }}
+  .dev-swatch.drop {{ background: var(--error); }}
+  .dev-global-ttl {{ max-width: 280px; }}
+  .dev-ttl-list {{
+    display: flex;
+    flex-direction: column;
+    gap: 0.3em;
+    margin: 0.2em 0 0.8em;
+  }}
+  .dev-ttl-row {{
+    display: grid;
+    grid-template-columns: minmax(8em, 1fr) 5.4em auto auto;
+    gap: 0.45em;
+    align-items: center;
+    font-size: 0.92rem;
+  }}
+  .dev-ttl-name {{
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }}
+  .dev-ttl-unit, .dev-ttl-mode {{
+    color: var(--muted);
+    font-size: 0.8rem;
+  }}
+  .dev-ttl-mode {{ min-width: 7.5em; }}
+  .dev-ttl-row input,
+  .dev-tools select,
+  .dev-tools input[type="search"] {{
+    font: inherit;
+    color: var(--text);
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 0.25em 0.4em;
+  }}
+  .dev-tools {{
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6em;
+    align-items: center;
+    margin: 0.3em 0 0.6em;
+  }}
+  .dev-tools label {{
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4em;
+    font-size: 0.9rem;
+  }}
+  .dev-tools input[type="search"] {{
+    flex: 1 1 14em;
+    min-width: 10em;
+  }}
+  .dev-site-open {{
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.3em 0.75em;
+    width: 100%;
+    text-align: left;
+    margin: 0 0 0.45em;
+    padding: 0.7em 0.8em;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    box-shadow: none;
+  }}
+  .dev-site-open:hover {{ background: var(--hover-soft); }}
+  .dev-site-name {{ font-weight: 700; }}
+  .dev-site-meta, .dev-site-drop {{
+    color: var(--muted);
+    font-size: 0.82rem;
+  }}
+  .dev-site-drop.warn {{ color: var(--error); }}
+  .dev-site-action {{
+    margin-left: auto;
+    color: var(--accent);
+    font-size: 0.85rem;
+  }}
+  .dev-page {{
+    padding: 0.55em 0;
+    border-bottom: 1px solid var(--border);
+  }}
+  .dev-page-title a {{ font-weight: 700; }}
+  .dev-page-url {{
+    color: var(--tip);
+    font-size: 0.78rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }}
+  .dev-page-meta {{
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.12em;
+    margin-top: 0.2em;
+    color: var(--muted);
+    font-size: 0.8rem;
+  }}
+  .dev-badge {{
+    display: inline-block;
+    font-size: 0.68rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    border-radius: 999px;
+    padding: 0.12em 0.5em;
+    border: 1px solid var(--border);
+  }}
+  .dev-badge.on {{
+    color: var(--accent);
+    border-color: var(--accent);
+  }}
+  .dev-pager {{
+    display: flex;
+    align-items: center;
+    gap: 0.6em;
+    margin: 0.6em 0 0.2em;
+  }}
+  .dev-pager .dev-page-label {{
+    color: var(--muted);
+    font-size: 0.82rem;
+  }}
   section.all-new.collapsed,
   section.clusters.collapsed {{
     padding-bottom: 1em;
@@ -1530,6 +1863,7 @@ def build_combined_html(
     <div class="header-actions">
       <button type="button" class="btn-cluster" id="btn-cluster" aria-pressed="{str(show_clusters).lower()}" title="Group related headlines by shared keywords">Cluster</button>
       <button type="button" class="btn-theme" id="btn-theme" aria-pressed="{str(dark_mode).lower()}" title="Toggle dark / light mode">{("Light" if dark_mode else "Dark")}</button>
+      <button type="button" class="btn-dev" id="btn-dev"{dev_btn_hidden}>Dev</button>
       <button type="button" class="btn-settings" id="btn-open-settings" aria-haspopup="dialog">Settings</button>
     </div>
   </div>
@@ -1618,6 +1952,15 @@ def build_combined_html(
           placeholder="e.g. reality, influencers, royal" autocomplete="off" spellcheck="false">
       </div>
 
+      <div class="settings-section-title">Developer</div>
+      <div class="toggles">
+        <label class="toggle">
+          <input type="checkbox" id="toggle-developer"{developer_checked}>
+          Developer mode
+        </label>
+      </div>
+      <p class="sites-hint">Adds a Dev button beside Settings. Dev opens the page cache, where you can see when each article was detected and how long it is kept.</p>
+
       <div class="toolbar-actions" style="margin-top:1em">
         <button type="button" class="primary" id="btn-export">Save for next run</button>
         <button type="button" id="btn-clear-storage">Clear all cookies &amp; saved settings</button>
@@ -1634,6 +1977,7 @@ def build_combined_html(
 {opened_today_section}
 {chr(10).join(sections)}
 
+{developer_section}
 <script>
 (function () {{
   const SITE_KEY = "newsextract.siteVisibility";
@@ -1692,7 +2036,15 @@ def build_combined_html(
     if (e.target === backdrop) closeSettings();
   }});
   document.addEventListener("keydown", function (e) {{
-    if (e.key === "Escape" && backdrop.classList.contains("open")) closeSettings();
+    if (e.key !== "Escape" && e.key !== "Esc") return;
+    if (backdrop.classList.contains("open")) {{
+      closeSettings();
+      return;
+    }}
+    const screen = devRoot();
+    if (!screen || screen.hidden) return;
+    if (devSiteIndex != null) showDevList();
+    else closeDevPage();
   }});
 
     function loadState(key, fallback) {{
@@ -1972,6 +2324,7 @@ def build_combined_html(
     ukraine: "ukraine", ukraina: "ukraine", ukrainsk: "ukraine", ukrainske: "ukraine",
     trump: "trump", trumps: "trump",
     putin: "putin", putins: "putin",
+    war: "war", wars: "war",
     gronland: "greenland", groenland: "greenland", grønland: "greenland",
     greenland: "greenland",
     klima: "climate", climate: "climate", klimat: "climate",
@@ -2004,6 +2357,38 @@ def build_combined_html(
       .replace(/ü/g, "ue");
   }}
 
+  function normalizeClusterInflection(w) {{
+    const t = String(w || "");
+    if (t.length < 4) return t;
+    if (t === "series" || t === "species") return t;
+    if (t.length >= 5 && t.slice(-3) === "ies") {{
+      const pre = t.charAt(t.length - 4);
+      if ("aeiou".indexOf(pre) === -1) return t.slice(0, -3) + "y";
+    }}
+    if (t.length >= 5 && /(sses|xes|zes|ches|shes)$/.test(t)) return t.slice(0, -2);
+    if (/[sui]s$/.test(t)) return t;
+    if (t.charAt(t.length - 1) === "s") {{
+      const pre = t.charAt(t.length - 2);
+      if ("aeiou".indexOf(pre) === -1) return t.slice(0, -1);
+    }}
+    return t;
+  }}
+
+  function clusterInflectionCandidates(token) {{
+    const t = String(token || "");
+    const out = [];
+    function add(s) {{
+      if (s && s.length >= 3 && s !== t) out.push(s);
+    }}
+    if (t.length < 4) return out;
+    if (t.charAt(t.length - 1) === "s") {{
+      add(t.slice(0, -1));
+      if (t.length >= 5 && t.slice(-2) === "es") add(t.slice(0, -2));
+      if (t.length >= 5 && t.slice(-3) === "ies") add(t.slice(0, -3) + "y");
+    }}
+    return out;
+  }}
+
   function hasDanishLetters(w) {{
     return /[æøåäöü]/i.test(w || "");
   }}
@@ -2019,10 +2404,28 @@ def build_combined_html(
     const sDa = hasDanishLetters(s);
     const pDa = hasDanishLetters(prev);
     if (sDa && !pDa) displayMap[canon] = s;
-    else if (sDa === pDa && s.length > prev.length) displayMap[canon] = s;
+    else if (pDa && !sDa) return;
+    else {{
+      const sFold = foldClusterToken(s);
+      const pFold = foldClusterToken(prev);
+      if (normalizeClusterInflection(sFold) === normalizeClusterInflection(pFold)) {{
+        if (s.length < prev.length) displayMap[canon] = s;
+        return;
+      }}
+      if (s.length > prev.length) displayMap[canon] = s;
+    }}
   }}
 
-  function extractClusterTokens(title, href, displayMap) {{
+  function canonicalizeClusterToken(w, folded, inflectionCanons) {{
+    if (CLUSTER_ALIASES[w]) return CLUSTER_ALIASES[w];
+    if (CLUSTER_ALIASES[folded]) return CLUSTER_ALIASES[folded];
+    const stemmed = normalizeClusterInflection(folded);
+    if (stemmed !== folded && inflectionCanons) inflectionCanons[stemmed] = 1;
+    if (CLUSTER_ALIASES[stemmed]) return CLUSTER_ALIASES[stemmed];
+    return stemmed;
+  }}
+
+  function extractClusterTokens(title, href, displayMap, inflectionCanons) {{
     const raw = ((title || "") + " " + clusterPathText(href)).toLowerCase();
     const parts = raw.match(/[a-z0-9æøåäöü]+/gi) || [];
     const seen = {{}};
@@ -2036,18 +2439,65 @@ def build_combined_html(
       if (/^\\d{{4,}}$/.test(w)) return;
       const folded = foldClusterToken(w);
       if (CLUSTER_IGNORE_WORDS[w] || CLUSTER_IGNORE_WORDS[folded]) return;
-      let canon;
-      if (CLUSTER_ALIASES[w]) canon = CLUSTER_ALIASES[w];
-      else if (CLUSTER_ALIASES[folded]) canon = CLUSTER_ALIASES[folded];
-      else canon = folded;
-      if (CLUSTER_IGNORE_WORDS[canon]) return;
-      if (canon.length < 3) return;
+      const canon = canonicalizeClusterToken(w, folded, inflectionCanons);
+      if (!canon || canon.length < 3) return;
       rememberClusterDisplay(displayMap, canon, original);
       if (seen[canon]) return;
       seen[canon] = true;
       out.push(canon);
     }});
     return out;
+  }}
+
+  function mergeClusterInflections(sourceItems, displayMap, inflectionCanons) {{
+    const vocab = {{}};
+    sourceItems.forEach(function (item) {{
+      (item.tokens || []).forEach(function (t) {{ vocab[t] = true; }});
+      (item.titleTokens || []).forEach(function (t) {{ vocab[t] = true; }});
+    }});
+    const remap = {{}};
+    Object.keys(vocab).forEach(function (token) {{
+      const cands = clusterInflectionCandidates(token);
+      for (let i = 0; i < cands.length; i++) {{
+        const raw = cands[i];
+        const stem = CLUSTER_ALIASES[raw] || raw;
+        if (vocab[stem] || vocab[raw]) {{
+          remap[token] = vocab[stem] ? stem : raw;
+          if (inflectionCanons) inflectionCanons[remap[token]] = 1;
+          break;
+        }}
+      }}
+    }});
+    Object.keys(remap).forEach(function (k) {{
+      let cur = remap[k];
+      const seen = {{}};
+      seen[k] = true;
+      while (remap[cur] && !seen[cur]) {{
+        seen[cur] = true;
+        cur = remap[cur];
+      }}
+      remap[k] = cur;
+    }});
+    if (!Object.keys(remap).length) return;
+    function apply(tokens) {{
+      if (!tokens) return tokens;
+      const seen = {{}};
+      const out = [];
+      tokens.forEach(function (t) {{
+        const c = remap[t] || t;
+        if (seen[c]) return;
+        seen[c] = true;
+        out.push(c);
+      }});
+      return out;
+    }}
+    sourceItems.forEach(function (item) {{
+      item.tokens = apply(item.tokens);
+      item.titleTokens = apply(item.titleTokens);
+    }});
+    Object.keys(remap).forEach(function (from) {{
+      rememberClusterDisplay(displayMap, remap[from], displayMap[from] || from);
+    }});
   }}
 
   function titleCaseClusterLabel(word, displayMap) {{
@@ -2058,6 +2508,7 @@ def build_combined_html(
       ukraine: "Ukraine",
       trump: "Trump",
       putin: "Putin",
+      war: "War",
       greenland: "Grønland",
       climate: "Klima",
       colombia: "Colombia",
@@ -2100,6 +2551,11 @@ def build_combined_html(
   function tokenInTitle(token, title) {{
     const foldedTitle = foldClusterToken(title || "");
     if (foldedTitle.indexOf(token) !== -1) return true;
+    const parts = String(title || "").toLowerCase().match(/[a-z0-9æøåäöü]+/gi) || [];
+    for (let i = 0; i < parts.length; i++) {{
+      const folded = foldClusterToken(parts[i]);
+      if (canonicalizeClusterToken(parts[i], folded) === token) return true;
+    }}
     for (const [alias, canon] of Object.entries(CLUSTER_ALIASES)) {{
       if (canon === token && foldedTitle.indexOf(foldClusterToken(alias)) !== -1) return true;
     }}
@@ -2174,6 +2630,7 @@ def build_combined_html(
     const sourceItems = [];
     const seenHref = {{}};
     const displayMap = {{}};
+    const inflectionCanons = {{}};
     document.querySelectorAll("section.site li.headline[data-href]").forEach(function (li) {{
       if (!isClusterSourceVisible(li)) return;
       if (onlyNew && li.getAttribute("data-new") !== "1") return;
@@ -2185,7 +2642,7 @@ def build_combined_html(
       const tip = li.querySelector(".url-tip");
       const tipText = tip ? tip.textContent : "";
       const siteId = li.getAttribute("data-site") || "";
-      const toks = extractClusterTokens(title + " " + tipText, href, displayMap);
+      const toks = extractClusterTokens(title + " " + tipText, href, displayMap, inflectionCanons);
       sourceItems.push({{
         li: li,
         href: href,
@@ -2193,9 +2650,10 @@ def build_combined_html(
         siteId: siteId,
         siteName: siteNameById[siteId] || siteId,
         tokens: toks,
-        titleTokens: extractClusterTokens(title, "", displayMap),
+        titleTokens: extractClusterTokens(title, "", displayMap, inflectionCanons),
       }});
     }});
+    mergeClusterInflections(sourceItems, displayMap, inflectionCanons);
 
     const df = {{}};
     sourceItems.forEach(function (item) {{
@@ -2213,7 +2671,7 @@ def build_combined_html(
     Object.keys(df).forEach(function (token) {{
       const n = df[token];
       if (n < 2 || n > maxDf) return;
-      if (token.length < 5 && !aliasCanon[token]) return;
+      if (token.length < 5 && !aliasCanon[token] && !inflectionCanons[token]) return;
       const members = sourceItems.filter(function (item) {{
         return item.tokens.indexOf(token) !== -1;
       }});
@@ -2442,6 +2900,22 @@ def build_combined_html(
     let selectedId = null;
     let dragging = null;
     let moved = false;
+    const ZOOM_MIN = 0.5;
+    const ZOOM_MAX = 2.5;
+    let zoom = 1;
+    let panX = 0;
+    let panY = 0;
+
+    function clampZoom(z) {{
+      return Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, z));
+    }}
+
+    function screenToWorld(sx, sy) {{
+      return {{
+        x: (sx - panX) / zoom,
+        y: (sy - panY) / zoom,
+      }};
+    }}
 
     function tick() {{
       const w = size.w;
@@ -2506,13 +2980,16 @@ def build_combined_html(
       const ctx = canvas.getContext("2d");
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, size.w, size.h);
+      ctx.save();
+      ctx.translate(panX, panY);
+      ctx.scale(zoom, zoom);
       const edgeColor = cssVar("--border", "#ddd");
       const textColor = cssVar("--text", "#1a1a1a");
       const accent = cssVar("--accent", "#1565c0");
       const panel = cssVar("--panel", "#fff");
       const muted = cssVar("--muted", "#666");
 
-      ctx.lineWidth = 1;
+      ctx.lineWidth = 1 / zoom;
       links.forEach(function (link) {{
         ctx.strokeStyle = edgeColor;
         ctx.globalAlpha = Math.min(0.85, 0.25 + link.weight * 0.12);
@@ -2528,7 +3005,7 @@ def build_combined_html(
         ctx.beginPath();
         ctx.fillStyle = active ? accent : panel;
         ctx.strokeStyle = accent;
-        ctx.lineWidth = active ? 2.5 : 1.5;
+        ctx.lineWidth = (active ? 2.5 : 1.5) / zoom;
         ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2);
         ctx.fill();
         ctx.stroke();
@@ -2545,6 +3022,7 @@ def build_combined_html(
         ctx.font = "11px Lato, Helvetica, Arial, sans-serif";
         ctx.fillText(String(n.count), n.x, n.y + n.r + 11);
       }});
+      ctx.restore();
     }}
 
     function frame() {{
@@ -2561,7 +3039,8 @@ def build_combined_html(
       }};
     }}
 
-    function hitTest(pos) {{
+    function hitTest(screenPos) {{
+      const pos = screenToWorld(screenPos.x, screenPos.y);
       for (let i = nodes.length - 1; i >= 0; i--) {{
         const n = nodes[i];
         const dx = pos.x - n.x;
@@ -2582,7 +3061,8 @@ def build_combined_html(
     }}
     function onPointerMove(evt) {{
       if (!dragging) return;
-      const pos = canvasPos(evt);
+      const screen = canvasPos(evt);
+      const pos = screenToWorld(screen.x, screen.y);
       dragging.x = pos.x;
       dragging.y = pos.y;
       dragging.vx = 0;
@@ -2600,11 +3080,26 @@ def build_combined_html(
         showClusterGraphDetail(node.id, data);
       }}
     }}
+    function onWheel(evt) {{
+      evt.preventDefault();
+      const screen = canvasPos(evt);
+      const before = screenToWorld(screen.x, screen.y);
+      const direction = evt.deltaY < 0 ? 1 : -1;
+      // Smooth step; trackpads send many small deltas.
+      const step = Math.min(0.2, Math.max(0.04, Math.abs(evt.deltaY) / 500));
+      const next = clampZoom(zoom * (1 + direction * step));
+      if (next === zoom) return;
+      zoom = next;
+      panX = screen.x - before.x * zoom;
+      panY = screen.y - before.y * zoom;
+    }}
     function onResize() {{
       const prev = size;
       size = resize();
       const sx = size.w / Math.max(1, prev.w);
       const sy = size.h / Math.max(1, prev.h);
+      panX *= sx;
+      panY *= sy;
       nodes.forEach(function (n) {{
         n.x *= sx;
         n.y *= sy;
@@ -2615,6 +3110,7 @@ def build_combined_html(
     canvas.addEventListener("pointermove", onPointerMove);
     canvas.addEventListener("pointerup", onPointerUp);
     canvas.addEventListener("pointercancel", onPointerUp);
+    canvas.addEventListener("wheel", onWheel, {{ passive: false }});
     window.addEventListener("resize", onResize);
 
     clusterGraph = {{
@@ -2625,6 +3121,7 @@ def build_combined_html(
         canvas.removeEventListener("pointermove", onPointerMove);
         canvas.removeEventListener("pointerup", onPointerUp);
         canvas.removeEventListener("pointercancel", onPointerUp);
+        canvas.removeEventListener("wheel", onWheel);
         window.removeEventListener("resize", onResize);
         canvas.classList.remove("is-dragging");
       }},
@@ -3026,6 +3523,504 @@ def build_combined_html(
     URL.revokeObjectURL(a.href);
   }}
 
+  const DEV_PAGE_SIZE = 40;
+  let pageCacheParsed = null;
+  let devSiteIndex = null;
+  let devListPage = 0;
+
+  function getPageCache() {{
+    if (pageCacheParsed) return pageCacheParsed;
+    const el = document.getElementById("page-cache-data");
+    try {{
+      pageCacheParsed = JSON.parse((el && el.textContent) || '{{"sites":[]}}');
+    }} catch (e) {{
+      pageCacheParsed = {{ sites: [] }};
+    }}
+    if (!pageCacheParsed || !Array.isArray(pageCacheParsed.sites)) pageCacheParsed = {{ sites: [] }};
+    return pageCacheParsed;
+  }}
+
+  function devRoot() {{
+    return document.getElementById("developer");
+  }}
+
+  function clampCacheTtl(value, fallback) {{
+    const fb = fallback == null ? 90 : fallback;
+    let n = parseInt(value, 10);
+    if (!isFinite(n)) n = fb;
+    if (n < 1) n = 1;
+    if (n > 730) n = 730;
+    return n;
+  }}
+
+  function initialCacheTtl() {{
+    const root = devRoot();
+    return clampCacheTtl(root ? root.getAttribute("data-ttl") : "90", 90);
+  }}
+
+  function currentCacheTtl() {{
+    const input = document.getElementById("input-cache-ttl");
+    return clampCacheTtl(input ? input.value : initialCacheTtl(), initialCacheTtl());
+  }}
+
+  function siteTtlInput(siteId) {{
+    if (!siteId) return null;
+    return document.querySelector('.dev-ttl-input[data-site="' + siteId + '"]');
+  }}
+
+  function siteTtlOverride(siteId) {{
+    const input = siteTtlInput(siteId);
+    if (!input) return null;
+    const raw = String(input.value || "").trim();
+    if (!raw) return null;
+    return clampCacheTtl(raw, currentCacheTtl());
+  }}
+
+  function effectiveTtl(siteId) {{
+    const over = siteTtlOverride(siteId);
+    return over == null ? currentCacheTtl() : over;
+  }}
+
+  function escHtml(s) {{
+    return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {{
+      return ({{ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }})[c];
+    }});
+  }}
+
+  function parseIso(iso) {{
+    if (!iso) return null;
+    const d = new Date(iso);
+    return isNaN(d.getTime()) ? null : d;
+  }}
+
+  function formatWhen(iso) {{
+    const d = parseIso(iso);
+    if (!d) return "Not recorded";
+    try {{
+      return d.toLocaleString(undefined, {{
+        year: "numeric", month: "short", day: "numeric",
+        hour: "2-digit", minute: "2-digit"
+      }});
+    }} catch (e) {{
+      return iso;
+    }}
+  }}
+
+  function formatAgo(iso) {{
+    const d = parseIso(iso);
+    if (!d) return "";
+    const days = Math.floor((Date.now() - d.getTime()) / 86400000);
+    if (days <= 0) return "today";
+    if (days === 1) return "1 day ago";
+    return days + " days ago";
+  }}
+
+  function rowsToPages(rows) {{
+    return (rows || []).map(function (row) {{
+      return {{
+        title: row[0] || "",
+        href: row[1] || "",
+        firstSeen: row[2] || "",
+        lastSeen: row[3] || "",
+        hits: row[4],
+        onPage: !!row[5],
+        estimated: !!row[6]
+      }};
+    }});
+  }}
+
+  function retentionText(page, ttl) {{
+    const last = parseIso(page.lastSeen);
+    if (!last) return "Life-span starts once a sighting time is recorded";
+    const days = Math.ceil((last.getTime() + ttl * 86400000 - Date.now()) / 86400000);
+    if (days <= 0) return "Drops on the next update";
+    if (days === 1) return "Kept 1 more day";
+    return "Kept " + days + " more days";
+  }}
+
+  function willDrop(page, ttl) {{
+    const last = parseIso(page.lastSeen);
+    if (!last) return false;
+    return last.getTime() + ttl * 86400000 <= Date.now();
+  }}
+
+  function detectionHow(page) {{
+    if (!page.firstSeen) {{
+      return "Before tracking — cached before detection times were stored";
+    }}
+    const ago = formatAgo(page.firstSeen);
+    return "Detected on the front page · " + formatWhen(page.firstSeen) + (ago ? " · " + ago : "");
+  }}
+
+  function lastSeenText(page) {{
+    if (page.estimated) {{
+      const when = page.lastSeen ? formatWhen(page.lastSeen) : "the previous update";
+      return "Sighting time not stored — kept since the update on " + when;
+    }}
+    if (!page.lastSeen) return "Last on front page · not recorded";
+    const ago = formatAgo(page.lastSeen);
+    let times = "times seen not recorded";
+    if (typeof page.hits === "number") {{
+      times = page.hits === 1 ? "seen 1 time" : "seen " + page.hits + " times";
+    }}
+    return "Last on front page · " + formatWhen(page.lastSeen) + (ago ? " · " + ago : "") + " · " + times;
+  }}
+
+  function cacheSite(index) {{
+    const sites = getPageCache().sites || [];
+    return sites[index] || null;
+  }}
+
+  function currentDevQuery() {{
+    const input = document.getElementById("dev-filter");
+    return input ? String(input.value || "").trim().toLowerCase() : "";
+  }}
+
+  function currentDevSort() {{
+    const sel = document.getElementById("dev-sort");
+    const v = sel ? sel.value : "last";
+    if (v === "first" || v === "title") return v;
+    return "last";
+  }}
+
+  function filterSortPages(site) {{
+    let pages = rowsToPages(site.pages);
+    const q = currentDevQuery();
+    if (q) {{
+      pages = pages.filter(function (p) {{
+        return (p.title || "").toLowerCase().indexOf(q) !== -1
+          || (p.href || "").toLowerCase().indexOf(q) !== -1;
+      }});
+    }}
+    const sort = currentDevSort();
+    pages.sort(function (a, b) {{
+      if (sort === "title") return (a.title || "").localeCompare(b.title || "");
+      if (sort === "first") {{
+        if (!a.firstSeen && b.firstSeen) return 1;
+        if (a.firstSeen && !b.firstSeen) return -1;
+        return (b.firstSeen || "").localeCompare(a.firstSeen || "");
+      }}
+      if (a.onPage !== b.onPage) return a.onPage ? -1 : 1;
+      return (b.lastSeen || "").localeCompare(a.lastSeen || "");
+    }});
+    return pages;
+  }}
+
+  function renderDevPage(page, ttl) {{
+    const title = page.title || page.href || "(untitled)";
+    const href = page.href || "";
+    const badge = page.onPage
+      ? '<span class="dev-badge on">On front page</span>'
+      : '<span class="dev-badge">In cache only</span>';
+    const link = href
+      ? '<a href="' + escHtml(href) + '" target="_blank" rel="noopener noreferrer">' + escHtml(title) + "</a>"
+      : escHtml(title);
+    return '<article class="dev-page">'
+      + '<div class="dev-page-title">' + link + "</div>"
+      + (href ? '<div class="dev-page-url">' + escHtml(href) + "</div>" : "")
+      + '<div class="dev-page-meta">' + badge
+      + "<span>" + escHtml(detectionHow(page)) + "</span>"
+      + "<span>" + escHtml(lastSeenText(page)) + "</span>"
+      + "<span>" + escHtml(retentionText(page, ttl)) + "</span>"
+      + "</div></article>";
+  }}
+
+  function renderDevDetail() {{
+    if (devSiteIndex == null) return;
+    const site = cacheSite(devSiteIndex);
+    const panel = document.getElementById("dev-detail-panel");
+    if (!panel || !site) return;
+    const pages = filterSortPages(site);
+    const ttl = effectiveTtl(site.id);
+    const pageCount = Math.max(1, Math.ceil(pages.length / DEV_PAGE_SIZE) || 1);
+    if (devListPage >= pageCount) devListPage = pageCount - 1;
+    if (devListPage < 0) devListPage = 0;
+    const start = devListPage * DEV_PAGE_SIZE;
+    const slice = pages.slice(start, start + DEV_PAGE_SIZE);
+    let body = "";
+    if (!pages.length) {{
+      body = '<p class="empty">' + (currentDevQuery()
+        ? "No cached pages match this filter."
+        : "No pages in the cache yet. Run with --update.") + "</p>";
+    }} else {{
+      body = slice.map(function (p) {{ return renderDevPage(p, ttl); }}).join("");
+    }}
+    const shownFrom = pages.length ? start + 1 : 0;
+    const shownTo = Math.min(pages.length, start + slice.length);
+    body += '<nav class="dev-pager">'
+      + '<button type="button" class="dev-prev"' + (devListPage <= 0 ? " disabled" : "") + ">Previous</button>"
+      + '<span class="dev-page-label">' + shownFrom + "–" + shownTo + " of " + pages.length + "</span>"
+      + '<button type="button" class="dev-next"' + (devListPage >= pageCount - 1 ? " disabled" : "") + ">Next</button>"
+      + "</nav>";
+    panel.innerHTML = body;
+  }}
+
+  function showDevList() {{
+    devSiteIndex = null;
+    const home = document.getElementById("dev-home");
+    const detail = document.getElementById("dev-detail");
+    if (home) home.hidden = false;
+    if (detail) detail.hidden = true;
+    const screen = devRoot();
+    if (screen && !screen.hidden) drawCacheGraph();
+    if (screen) screen.scrollTop = 0;
+  }}
+
+  function openDevSite(index) {{
+    const site = cacheSite(index);
+    if (!site) return;
+    devSiteIndex = index;
+    devListPage = 0;
+    const home = document.getElementById("dev-home");
+    const detail = document.getElementById("dev-detail");
+    if (home) home.hidden = true;
+    if (detail) detail.hidden = false;
+    const title = document.getElementById("dev-detail-title");
+    if (title) title.textContent = site.name || "Cache";
+    const lead = document.getElementById("dev-detail-lead");
+    if (lead) {{
+      const count = (site.pages || []).length;
+      lead.textContent = "Cached articles for " + (site.name || "this site")
+        + " (" + count.toLocaleString() + " page" + (count === 1 ? "" : "s") + "). "
+        + "Each row is one page kept so a later appearance on the front page is still recognised.";
+    }}
+    const filter = document.getElementById("dev-filter");
+    if (filter) filter.value = "";
+    renderDevDetail();
+    const screen = devRoot();
+    if (screen) screen.scrollTop = 0;
+  }}
+
+  function openDevPage() {{
+    const screen = devRoot();
+    if (!screen) return;
+    screen.hidden = false;
+    document.body.classList.add("dev-open");
+    showDevList();
+    refreshDevSummaries();
+    const back = document.getElementById("btn-dev-back");
+    if (back) back.focus();
+  }}
+
+  function closeDevPage() {{
+    const screen = devRoot();
+    if (screen) screen.hidden = true;
+    document.body.classList.remove("dev-open");
+    showDevList();
+  }}
+
+  function updateTtlModes() {{
+    const globalTtl = currentCacheTtl();
+    document.querySelectorAll(".dev-ttl-input[data-site]").forEach(function (input) {{
+      input.placeholder = String(globalTtl);
+      const mode = input.parentNode ? input.parentNode.querySelector(".dev-ttl-mode") : null;
+      const raw = String(input.value || "").trim();
+      let label = "default";
+      if (raw) {{
+        label = clampCacheTtl(raw, globalTtl) === globalTtl ? "same as default" : "custom";
+      }}
+      if (mode) mode.textContent = label;
+    }});
+  }}
+
+  function swatchColor(kind) {{
+    const el = document.querySelector(".dev-swatch." + kind);
+    return el ? (getComputedStyle(el).backgroundColor || "#888") : "#888";
+  }}
+
+  function fitGraphLabel(ctx, text, maxW) {{
+    const full = text || "";
+    if (ctx.measureText(full).width <= maxW) return full;
+    let s = full;
+    while (s.length > 1 && ctx.measureText(s + "…").width > maxW) s = s.slice(0, -1);
+    return (s || full.charAt(0)) + "…";
+  }}
+
+  function cacheGraphBars() {{
+    const sites = getPageCache().sites || [];
+    const bars = [];
+    sites.forEach(function (site, index) {{
+      const pages = rowsToPages(site.pages);
+      const ttl = effectiveTtl(site.id);
+      let onPage = 0;
+      let drop = 0;
+      let kept = 0;
+      pages.forEach(function (p) {{
+        if (p.onPage) onPage += 1;
+        else if (willDrop(p, ttl)) drop += 1;
+        else kept += 1;
+      }});
+      const total = onPage + kept + drop;
+      if (!total) return;
+      bars.push({{
+        index: index,
+        name: site.name || site.domain || "Cache",
+        onPage: onPage,
+        kept: kept,
+        drop: drop,
+        total: total
+      }});
+    }});
+    bars.sort(function (a, b) {{
+      if (b.total !== a.total) return b.total - a.total;
+      return String(a.name).localeCompare(String(b.name));
+    }});
+    return bars;
+  }}
+
+  function drawCacheGraph() {{
+    const canvas = document.getElementById("dev-cache-graph");
+    const summary = document.getElementById("dev-graph-summary");
+    const screen = devRoot();
+    const home = document.getElementById("dev-home");
+    if (!canvas || !screen || screen.hidden || !home || home.hidden) return;
+    const bars = cacheGraphBars();
+    let pageCount = 0;
+    let onCount = 0;
+    let dropCount = 0;
+    bars.forEach(function (bar) {{
+      pageCount += bar.total;
+      onCount += bar.onPage;
+      dropCount += bar.drop;
+    }});
+    if (summary) {{
+      summary.textContent = bars.length
+        ? (bars.length + " site" + (bars.length === 1 ? "" : "s")
+          + " · " + pageCount.toLocaleString() + " page" + (pageCount === 1 ? "" : "s")
+          + " · " + onCount.toLocaleString() + " on front page"
+          + " · " + dropCount.toLocaleString() + " drop" + (dropCount === 1 ? "" : "s") + " on next update")
+        : "No cached pages yet.";
+    }}
+    const fold = document.getElementById("dev-fold-graph");
+    const cssWidth = Math.max(280, (fold ? fold.clientWidth : canvas.parentNode.clientWidth) - 28);
+    const rowH = 22;
+    const labelW = Math.min(168, Math.floor(cssWidth * 0.34));
+    const cssHeight = Math.max(36, (bars.length || 1) * rowH + 8);
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = Math.max(1, Math.floor(cssWidth * dpr));
+    canvas.height = Math.max(1, Math.floor(cssHeight * dpr));
+    canvas.style.height = cssHeight + "px";
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, cssWidth, cssHeight);
+    const textColor = getComputedStyle(document.body).color || "#222";
+    const muted = getComputedStyle(document.body).getPropertyValue("--muted").trim() || "#666";
+    canvas._bars = [];
+    if (!bars.length) {{
+      ctx.fillStyle = muted;
+      ctx.font = "14px Lato, Helvetica, sans-serif";
+      ctx.textBaseline = "top";
+      ctx.fillText("No cached pages yet.", 0, 8);
+      return;
+    }}
+    const max = bars[0].total || 1;
+    const barLeft = labelW + 8;
+    const barMaxW = Math.max(24, cssWidth - barLeft - 48);
+    const colorOn = swatchColor("on");
+    const colorKept = swatchColor("kept");
+    const colorDrop = swatchColor("drop");
+    ctx.textBaseline = "middle";
+    ctx.font = "13px Lato, Helvetica, sans-serif";
+    bars.forEach(function (bar, i) {{
+      const y = 4 + i * rowH;
+      const mid = y + (rowH / 2);
+      ctx.fillStyle = textColor;
+      ctx.font = "13px Lato, Helvetica, sans-serif";
+      ctx.fillText(fitGraphLabel(ctx, bar.name, labelW), 0, mid);
+      let x = barLeft;
+      const top = mid - 6;
+      function segment(count, color) {{
+        if (!count) return;
+        const width = Math.max(1, (count / max) * barMaxW);
+        ctx.fillStyle = color;
+        ctx.fillRect(x, top, width, 12);
+        x += width;
+      }}
+      segment(bar.onPage, colorOn);
+      segment(bar.kept, colorKept);
+      segment(bar.drop, colorDrop);
+      ctx.fillStyle = muted;
+      ctx.font = "12px Lato, Helvetica, sans-serif";
+      ctx.fillText(bar.total.toLocaleString(), x + 6, mid);
+      canvas._bars.push({{ index: bar.index, y: y, h: rowH }});
+    }});
+  }}
+
+  function refreshDevSummaries() {{
+    updateTtlModes();
+    const screen = devRoot();
+    if (!screen || screen.hidden) return;
+    document.querySelectorAll("#dev-sites .dev-site-open").forEach(function (btn) {{
+      const site = cacheSite(Number(btn.getAttribute("data-index")));
+      if (!site) return;
+      const all = rowsToPages(site.pages);
+      const ttl = effectiveTtl(site.id);
+      const onPage = all.filter(function (p) {{ return p.onPage; }}).length;
+      const drops = all.filter(function (p) {{ return willDrop(p, ttl); }}).length;
+      const bits = [];
+      bits.push(all.length.toLocaleString() + " page" + (all.length === 1 ? "" : "s"));
+      if (onPage) bits.push(onPage.toLocaleString() + " on front page");
+      if (site.domain) bits.push(site.domain);
+      const meta = btn.querySelector(".dev-site-meta");
+      if (meta) meta.textContent = bits.join(" · ");
+      const dropEl = btn.querySelector(".dev-site-drop");
+      if (dropEl) {{
+        dropEl.textContent = drops
+          ? (drops.toLocaleString() + " drop" + (drops === 1 ? "" : "s") + " on next update")
+          : "";
+        dropEl.classList.toggle("warn", drops > 0);
+      }}
+    }});
+    if (devSiteIndex != null) renderDevDetail();
+    else drawCacheGraph();
+  }}
+
+  function applyDeveloperMode(on) {{
+    const btn = document.getElementById("btn-dev");
+    if (btn) btn.hidden = !on;
+    const toggle = document.getElementById("toggle-developer");
+    if (toggle) toggle.checked = !!on;
+    if (!on) closeDevPage();
+  }}
+
+  function applyCacheTtl(days) {{
+    const n = clampCacheTtl(days, initialCacheTtl());
+    const input = document.getElementById("input-cache-ttl");
+    if (input) input.value = String(n);
+    const label = document.getElementById("input-cache-ttl-value");
+    if (label) label.textContent = n + (n === 1 ? " day" : " days");
+    refreshDevSummaries();
+    return n;
+  }}
+
+  function applySiteTtlMap(map) {{
+    if (!map || typeof map !== "object") return;
+    document.querySelectorAll(".dev-ttl-input[data-site]").forEach(function (input) {{
+      const id = input.getAttribute("data-site");
+      if (!Object.prototype.hasOwnProperty.call(map, id)) return;
+      if (map[id] == null || map[id] === "") input.value = "";
+      else input.value = String(clampCacheTtl(map[id], currentCacheTtl()));
+    }});
+    refreshDevSummaries();
+  }}
+
+  function currentSiteTtlMap() {{
+    const map = {{}};
+    const globalTtl = currentCacheTtl();
+    document.querySelectorAll(".dev-ttl-input[data-site]").forEach(function (input) {{
+      const id = input.getAttribute("data-site");
+      if (!id) return;
+      const raw = String(input.value || "").trim();
+      if (!raw) map[id] = null;
+      else {{
+        const n = clampCacheTtl(raw, globalTtl);
+        map[id] = n === globalTtl ? null : n;
+      }}
+    }});
+    return map;
+  }}
+
   applySites(loadState(SITE_KEY, initialSites));
   applyLanguages(loadState(LANG_KEY, initialLanguages));
   applyCats(loadState(CAT_KEY, initialCats));
@@ -3064,6 +4059,19 @@ def build_combined_html(
   applyDimOpened(loadBool(DIM_OPENED_KEY, initialDimOpened));
   applyOpenedTodayPanel(loadBool(OPENED_TODAY_KEY, initialOpenedToday));
   applyDarkMode(loadBool(DARK_MODE_KEY, initialDarkMode));
+  applyDeveloperMode(loadBool("newsextract.developerMode", !!(devRoot() && devRoot().getAttribute("data-dev") === "1")));
+  (function () {{
+    let days = initialCacheTtl();
+    try {{
+      const raw = localStorage.getItem("newsextract.cacheTtlDays");
+      if (raw !== null && raw !== "") days = JSON.parse(raw);
+    }} catch (e) {{}}
+    applyCacheTtl(days);
+    try {{
+      const raw = localStorage.getItem("newsextract.cacheTtlBySite");
+      if (raw !== null && raw !== "") applySiteTtlMap(JSON.parse(raw));
+    }} catch (e) {{}}
+  }})();
   applyCollapsedSites(loadState(COLLAPSED_KEY, {{}}));
   requestAnimationFrame(function () {{
     document.documentElement.classList.add("collapse-ready");
@@ -3373,6 +4381,101 @@ def build_combined_html(
     applyCats(state);
   }});
 
+  document.getElementById("toggle-developer").addEventListener("change", function () {{
+    const on = document.getElementById("toggle-developer").checked;
+    saveState("newsextract.developerMode", on);
+    applyDeveloperMode(on);
+    if (on) closeSettings();
+    setStatus(on ? "Developer mode on — Dev opens the page cache" : "Developer mode off");
+  }});
+
+  document.getElementById("btn-dev").addEventListener("click", function () {{
+    openDevPage();
+  }});
+
+  (function () {{
+    const canvas = document.getElementById("dev-cache-graph");
+    if (!canvas) return;
+    function barAt(e) {{
+      const rect = canvas.getBoundingClientRect();
+      const y = e.clientY - rect.top;
+      const bars = canvas._bars || [];
+      for (let i = 0; i < bars.length; i++) {{
+        if (y >= bars[i].y && y < bars[i].y + bars[i].h) return bars[i];
+      }}
+      return null;
+    }}
+    canvas.addEventListener("click", function (e) {{
+      const hit = barAt(e);
+      if (hit) openDevSite(hit.index);
+    }});
+    canvas.addEventListener("mousemove", function (e) {{
+      canvas.style.cursor = barAt(e) ? "pointer" : "default";
+    }});
+    const fold = document.getElementById("dev-fold-graph");
+    if (fold) {{
+      fold.addEventListener("toggle", function () {{
+        if (fold.open) drawCacheGraph();
+      }});
+    }}
+    window.addEventListener("resize", function () {{
+      const screen = devRoot();
+      if (screen && !screen.hidden && devSiteIndex == null) drawCacheGraph();
+    }});
+  }})();
+
+  document.getElementById("btn-dev-back").addEventListener("click", function () {{
+    closeDevPage();
+    const devBtn = document.getElementById("btn-dev");
+    if (devBtn) devBtn.focus();
+  }});
+
+  document.getElementById("btn-dev-all-sites").addEventListener("click", showDevList);
+
+  document.getElementById("dev-sites").addEventListener("click", function (e) {{
+    const btn = e.target && e.target.closest ? e.target.closest(".dev-site-open") : null;
+    if (!btn) return;
+    openDevSite(Number(btn.getAttribute("data-index")));
+  }});
+
+  document.getElementById("input-cache-ttl").addEventListener("input", function () {{
+    const n = applyCacheTtl(currentCacheTtl());
+    saveState("newsextract.cacheTtlDays", n);
+    if (localStorage.getItem("newsextract.cacheTtlBySite")) {{
+      saveState("newsextract.cacheTtlBySite", currentSiteTtlMap());
+    }}
+    setStatus("Article life-span " + n + " days");
+  }});
+
+  document.getElementById("dev-ttl-list").addEventListener("input", function (e) {{
+    const input = e.target && e.target.classList && e.target.classList.contains("dev-ttl-input") ? e.target : null;
+    if (!input) return;
+    saveState("newsextract.cacheTtlBySite", currentSiteTtlMap());
+    refreshDevSummaries();
+    const over = siteTtlOverride(input.getAttribute("data-site"));
+    setStatus(over == null
+      ? "This site uses the default life-span"
+      : ("Life-span for this site is " + over + " days"));
+  }});
+
+  document.getElementById("dev-filter").addEventListener("input", function () {{
+    devListPage = 0;
+    renderDevDetail();
+  }});
+
+  document.getElementById("dev-sort").addEventListener("change", function () {{
+    devListPage = 0;
+    renderDevDetail();
+  }});
+
+  document.getElementById("dev-detail").addEventListener("click", function (e) {{
+    const btn = e.target && e.target.closest ? e.target.closest(".dev-prev, .dev-next") : null;
+    if (!btn || btn.disabled) return;
+    devListPage += btn.classList.contains("dev-next") ? 1 : -1;
+    if (devListPage < 0) devListPage = 0;
+    renderDevDetail();
+  }});
+
   document.getElementById("btn-export").addEventListener("click", function () {{
     const siteState = currentSiteState();
     const catState = currentCatState();
@@ -3413,6 +4516,21 @@ def build_combined_html(
     nextSettings.show_opened_today = showOpenedToday;
     nextSettings.dark_mode = darkMode;
     nextSettings.languages = languages;
+    nextSettings.developer_mode = document.getElementById("toggle-developer").checked;
+    nextSettings.cache_ttl_days = currentCacheTtl();
+    const globalTtl = nextSettings.cache_ttl_days;
+    document.querySelectorAll(".dev-ttl-input[data-site]").forEach(function (input) {{
+      const id = input.getAttribute("data-site");
+      if (!id || !nextSites[id] || typeof nextSites[id] !== "object") return;
+      const raw = String(input.value || "").trim();
+      if (!raw) {{
+        delete nextSites[id].cache_ttl_days;
+        return;
+      }}
+      const n = clampCacheTtl(raw, globalTtl);
+      if (n === globalTtl) delete nextSites[id].cache_ttl_days;
+      else nextSites[id].cache_ttl_days = n;
+    }});
 
     const nextCats = JSON.parse(JSON.stringify(categoriesConfig));
     Object.keys(catState).forEach(function (id) {{

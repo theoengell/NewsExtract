@@ -29,8 +29,19 @@ def make_default_settings():
         "show_clusters": False,
         "cluster_view": "list",
         "cluster_min_size": 2,
+        "developer_mode": False,
+        "cache_ttl_days": 90,
         "languages": {"da": True, "en": True},
     }
+
+
+# How long a front-page URL stays in the cache after it was last seen.
+# While it is cached, a later appearance is still recognised as previously seen.
+# Some outlets rotate a pool of articles for several months, so the life-span
+# can be raised per site (up to two years).
+DEFAULT_CACHE_TTL_DAYS = 90
+MIN_CACHE_TTL_DAYS = 1
+MAX_CACHE_TTL_DAYS = 730
 
 DEFAULT_CATEGORIES = {
     "nyheder": {
