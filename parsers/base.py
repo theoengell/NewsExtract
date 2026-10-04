@@ -44,31 +44,54 @@ def clean_glued_headline(text: str) -> str:
     return text
 
 
-def teaserlink_headline(link_el) -> str:
+def _teaser_headline_box(link_el):
     """
-    BT / Berlingske TeaserLink cards split the title across fluid-line spans.
-    Their aria-label often concatenates those lines without spaces. Rebuild
-    the title by joining each visible fluid line with a space.
+    Current Berlingske Media cards put the headline inside the link.
+    Older cards kept it as a sibling under TeaserLink_container.
     """
+    hl = link_el.select_one("[class*='TeaserHeadline_container']")
+    if hl is not None:
+        return hl
     box = link_el.find_parent(class_=re.compile(r"TeaserLink_container"))
     if box is None:
-        return clean_glued_headline(link_el.get("aria-label") or "")
+        return None
+    return box.select_one("[class*='TeaserHeadline_container']")
 
-    hl = box.select_one("[class*='TeaserHeadline_container']")
-    if hl is None:
-        return clean_glued_headline(link_el.get("aria-label") or "")
 
-    parts = []
-    for line in hl.select("[class*='TeaserHeadline_fluidLine']"):
-        if line.find_parent(attrs={"aria-hidden": "true"}):
-            continue
-        t = line.get_text(" ", strip=True)
-        if t and (not parts or parts[-1] != t):
-            parts.append(t)
+def teaserlink_headline(link_el) -> str:
+    """
+    BT / Berlingske / Weekendavisen teaser titles.
 
-    if parts:
-        return clean_glued_headline(" ".join(parts))
-    return clean_glued_headline(link_el.get("aria-label") or "")
+    BT still splits the title across fluid-line spans and duplicates each
+    line in an aria-hidden node. Berlingske now puts the full title in
+    TeaserHeadline_headline inside the link, with no aria-label. Older
+    pages kept the lines beside the link and a spaceless aria-label as
+    fallback. Rebuild a spaced title from the visible lines.
+    """
+    hl = _teaser_headline_box(link_el)
+    if hl is not None:
+        parts = []
+        for line in hl.select("[class*='TeaserHeadline_fluidLine']"):
+            if line.find_parent(attrs={"aria-hidden": "true"}):
+                continue
+            t = line.get_text(" ", strip=True)
+            if t and (not parts or parts[-1] != t):
+                parts.append(t)
+        if parts:
+            return clean_glued_headline(" ".join(parts))
+
+        headline = hl.select_one("[class*='TeaserHeadline_headline']")
+        if headline is not None:
+            t = headline.get_text(" ", strip=True)
+            if t:
+                return clean_glued_headline(t)
+
+    label = clean_glued_headline(link_el.get("aria-label") or "")
+    if label:
+        return label
+    # Campaign teasers (for example BT's Nyhedsminuttet) put the title in the
+    # link with neither fluid lines nor an aria-label.
+    return clean_glued_headline(link_el.get_text(" ", strip=True) or "")
 
 
 def is_probably_noise(text: str) -> bool:
